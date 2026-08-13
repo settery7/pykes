@@ -1,0 +1,22 @@
+:80 {
+	# API routes go to the backend container
+	handle /api/* {
+		reverse_proxy backend:4000
+	}
+
+	# WebSocket connections go to the backend container too
+	handle /ws/* {
+		reverse_proxy backend:4000
+	}
+
+	# Everything else is the frontend
+	handle {
+		reverse_proxy frontend:80
+	}
+}
+
+# For a real domain with free auto-HTTPS, replace :80 above with your domain, e.g:
+# pykes.yourdomain.com {
+#     handle /api/* { reverse_proxy backend:4000 }
+#     handle { reverse_proxy frontend:80 }
+# }
