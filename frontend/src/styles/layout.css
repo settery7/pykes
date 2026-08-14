@@ -1,0 +1,152 @@
+/* Pykes app-shell layout — structure only; colors/type/radii all come from
+   tokens.css. Structural show/hide (sidebar vs. bottom tabs, right rail) is
+   driven by JS viewport state, matching the design handoff's own approach. */
+
+#root { height: 100vh; overflow: hidden; }
+.app-shell { height: 100%; display: flex; flex-direction: column; }
+.shell-body { flex: 1; display: flex; overflow: hidden; }
+
+/* — mobile top bar — */
+.topbar-mobile {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
+  background: var(--surface); flex: none;
+}
+.topbar-mobile .logo-mark { width: 16px; height: 16px; }
+.topbar-mobile .wordmark { font-weight: 800; font-size: 16px; letter-spacing: -0.01em; }
+
+/* — sidebar — */
+.sidebar {
+  width: 224px; flex: none; border-right: 1px solid var(--border);
+  background: var(--surface); display: flex; flex-direction: column; padding: 20px 14px; gap: 4px;
+}
+.sidebar-logo { display: flex; align-items: center; gap: 10px; padding: 6px 8px 20px 8px; cursor: pointer; width: 100%; text-align: left; }
+.sidebar-logo .logo-mark { width: 18px; height: 18px; }
+.sidebar-logo .wordmark { font-weight: 800; font-size: 18px; letter-spacing: -0.01em; }
+.sidebar-spacer { flex: 1; }
+.nav-item {
+  display: block; width: 100%; text-align: left;
+  padding: 9px 10px; border-radius: 8px; font-size: 14px; font-weight: 500;
+  color: var(--text-tertiary); cursor: pointer;
+}
+.nav-item.is-active { font-weight: 700; color: var(--text); background: var(--elevated); }
+.sidebar .btn-primary { width: 100%; }
+.sidebar-logout { display: block; width: 100%; text-align: left; padding: 10px 8px 2px 8px; color: var(--text-tertiary); font-size: 13px; cursor: pointer; }
+
+/* — main column — */
+.main-scroll { flex: 1; overflow-y: auto; min-width: 0; }
+.page-inner { max-width: 640px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+.page-inner.is-mobile { padding: 16px; }
+.page-inner.is-desktop { padding: 28px 32px; }
+.page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.page-header h1 { font-size: 20px; font-weight: 800; margin: 0; }
+.page-sub { color: var(--text-tertiary); font-size: 14px; margin: 0 0 20px 0; }
+
+/* — right rail — */
+.right-rail {
+  width: 296px; flex: none; border-left: 1px solid var(--border);
+  padding: 20px 18px; overflow-y: auto; display: flex; flex-direction: column; gap: 24px;
+}
+.rail-item { display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 4px 0; width: 100%; text-align: left; }
+.rail-item.card-style { background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; }
+.rail-item .meta-name { font-size: 13px; font-weight: 600; }
+.rail-item .meta-sub { font-size: 11px; color: var(--text-tertiary); }
+.suggested-row { display: flex; align-items: center; gap: 8px; }
+
+/* — bottom tabs (mobile) — */
+.bottom-tabs { flex: none; display: flex; border-top: 1px solid var(--border); background: var(--surface); }
+.bottom-tab { flex: 1; text-align: center; padding: 11px 4px; font-size: 12px; font-weight: 500; color: var(--text-tertiary); cursor: pointer; }
+.bottom-tab.is-active { font-weight: 700; color: var(--accent); }
+
+/* — auth — */
+.auth-page { height: 100%; display: flex; align-items: center; justify-content: center; padding: 24px; }
+.auth-wrap { width: 100%; max-width: 380px; }
+.auth-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 28px; justify-content: center; }
+.auth-logo .logo-mark { width: 22px; height: 22px; }
+.auth-logo .wordmark { font-weight: 800; font-size: 22px; letter-spacing: -0.01em; }
+.auth-tagline { text-align: center; color: var(--text-tertiary); font-size: 14px; margin: 0 0 24px 0; }
+.auth-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 24px; }
+.auth-error { color: var(--danger); font-size: 13px; margin: 0 0 10px 0; }
+.auth-demo { display: block; width: 100%; text-align: center; margin-top: 14px; font-size: 12px; color: var(--text-tertiary); cursor: pointer; }
+
+/* — composer modal — */
+.modal-backdrop {
+  position: fixed; inset: 0; background: oklch(0.1 0.01 55 / 0.6);
+  display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 50;
+}
+.modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-panel); padding: 22px; width: 100%; max-width: 480px; }
+.modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.modal-head .title { font-weight: 700; font-size: 16px; }
+.chip-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.composer-hint { font-size: 12px; padding: 8px 12px; border-radius: 8px; }
+.composer-hint.grows { background: var(--accent-tint); color: var(--accent); }
+.composer-hint.neutral { background: var(--elevated); color: var(--text-tertiary); }
+.media-well { position: relative; margin-bottom: 14px; }
+.media-well img { width: 100%; height: 160px; object-fit: cover; border-radius: 8px; display: block; }
+.media-remove {
+  position: absolute; top: 8px; right: 8px; background: oklch(0.14 0.01 55 / 0.75);
+  color: var(--text); border: none; border-radius: 6px; padding: 3px 8px; font-size: 11px; cursor: pointer;
+}
+.add-photo-link { font-size: 12px; color: var(--accent); cursor: pointer; margin-bottom: 14px; display: inline-block; background: none; border: none; padding: 0; font-family: inherit; }
+
+/* — garden panel — */
+.garden-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-panel); padding: 24px; display: flex; gap: 24px; flex-wrap: wrap; align-items: center; margin-bottom: 22px; }
+.garden-panel .stat-block { flex: 1; min-width: 180px; }
+.garden-stage-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent); margin-bottom: 4px; }
+.garden-stage-note { font-size: 13px; color: var(--text-tertiary); margin-bottom: 14px; }
+.stat-row { display: flex; gap: 18px; }
+.stat-row .stat-num { font-size: 16px; font-weight: 800; }
+.stat-row .stat-label { font-size: 11px; color: var(--text-tertiary); }
+
+/* — grids — */
+.cards-grid { display: grid; gap: 12px; }
+.creator-list { display: flex; flex-direction: column; gap: 8px; }
+.creator-row { display: flex; align-items: center; gap: 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+.creator-row .identity { display: flex; align-items: center; gap: 10px; flex: 1; cursor: pointer; min-width: 0; }
+.identity .meta-name { font-weight: 600; font-size: 14px; }
+.identity .meta-sub { font-size: 12px; color: var(--text-tertiary); }
+
+/* — project card — */
+.project-card { display: flex; gap: 12px; cursor: pointer; width: 100%; text-align: left; }
+.project-card .body { flex: 1; min-width: 0; }
+.project-card .p-name { font-weight: 700; font-size: 14px; }
+.project-card .p-owner { font-size: 12px; color: var(--text-tertiary); margin-top: 1px; }
+.project-card .p-desc {
+  font-size: 13px; color: var(--text-secondary); margin-top: 6px;
+  overflow: hidden; text-overflow: ellipsis; display: -webkit-box;
+  -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+.project-card .p-stage { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--accent); margin-top: 8px; }
+
+/* — post card — */
+.post-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.post-head .identity { display: flex; align-items: center; gap: 10px; }
+.post-head .who { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.post-head .name { font-weight: 600; font-size: 14px; cursor: pointer; }
+.post-head .handle, .post-head .dot { font-size: 13px; color: var(--text-tertiary); }
+.post-head .project-link { font-size: 13px; color: var(--accent); cursor: pointer; }
+.post-time { font-size: 12px; color: var(--text-tertiary); margin-top: 1px; }
+.post-content { margin: 0; font-size: 14px; line-height: 1.5; color: oklch(0.9 0.01 70); white-space: pre-wrap; }
+.post-photo { width: 100%; height: 220px; object-fit: cover; border-radius: 8px; display: block; }
+.growth-note { font-size: 12px; color: var(--accent); }
+.post-foot { display: flex; align-items: center; gap: 18px; }
+.comment-count { display: flex; align-items: center; gap: 5px; font-size: 14px; color: var(--text-tertiary); }
+
+/* — profile — */
+.profile-head { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 20px; }
+.profile-name-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.profile-name-row h1 { font-size: 19px; font-weight: 800; margin: 0; }
+.profile-handle { font-size: 13px; color: var(--text-tertiary); margin-top: 2px; }
+.profile-bio { font-size: 14px; color: var(--text-secondary); margin: 8px 0 0 0; max-width: 440px; }
+.profile-counts { display: flex; gap: 16px; margin-top: 10px; font-size: 13px; color: var(--text-tertiary); }
+.profile-counts strong { color: var(--text); }
+.avatar-upload { position: relative; cursor: pointer; }
+.avatar-upload input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+
+/* — new project — */
+.new-project-page { max-width: 420px; }
+.slug-preview { font-size: 12px; font-family: var(--font-mono); color: var(--text-tertiary); margin-bottom: 16px; }
+
+@media (max-width: 640px) {
+  .garden-panel { flex-direction: column; align-items: flex-start; }
+}

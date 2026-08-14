@@ -66,16 +66,16 @@ Run Postgres/Redis/MinIO in Docker, but run the app processes on your host:
 ```bash
 docker compose up postgres redis minio -d
 cd backend
-npm install
-npm run dev          # loads backend/.env.local (localhost hostnames)
+npm.cmd install
+npm.cmd run dev          # loads backend/.env.local (localhost hostnames)
 ```
 
 In a second terminal:
 
 ```bash
 cd frontend
-npm install
-npm run dev           # Vite dev server, proxies /api and /ws to :4000
+npm.cmd install
+npm.cmd run dev           # Vite dev server, proxies /api and /ws to :4000
 ```
 
 Note: `backend/.env` (Docker hostnames) and `backend/.env.local` (localhost

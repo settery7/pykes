@@ -7,6 +7,11 @@ export default defineConfig({
     proxy: {
       "/api": "http://localhost:4000",
       "/ws": { target: "ws://localhost:4000", ws: true },
+      "/media": {
+        target: "http://localhost:9000",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/media/, ""),
+      },
     },
   },
 });

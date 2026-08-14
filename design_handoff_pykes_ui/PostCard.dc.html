@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+
+<div style="{{ post.cardStyle }}">
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div onClick="{{ post.onOpenAuthor }}" style="{{ post.avatarStyle }}">{{ post.authorInitial }}</div>
+      <div>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          <span onClick="{{ post.onOpenAuthor }}" style="font-weight:600;font-size:14px;cursor:pointer;">{{ post.authorName }}</span>
+          <span style="font-size:13px;color:oklch(0.54 0.014 70);">{{ post.authorHandle }}</span>
+          <sc-if value="{{ post.projectName }}" hint-placeholder-val="{{ false }}">
+            <span style="font-size:13px;color:oklch(0.54 0.014 70);">&middot;</span>
+            <span onClick="{{ post.onOpenProject }}" style="font-size:13px;color:oklch(0.72 0.16 150);cursor:pointer;">{{ post.projectName }}</span>
+          </sc-if>
+        </div>
+        <div style="font-size:12px;color:oklch(0.54 0.014 70);margin-top:1px;">{{ post.timeAgo }}</div>
+      </div>
+    </div>
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:{{ post.typeColor }};flex:none;">{{ post.typeLabel }}</div>
+  </div>
+
+  <p style="margin:0;font-size:14px;line-height:1.5;color:oklch(0.9 0.01 70);white-space:pre-wrap;">{{ post.content }}</p>
+
+  <sc-if value="{{ post.mediaSlotId }}" hint-placeholder-val="{{ false }}">
+    <image-slot id="{{ post.mediaSlotId }}" shape="rounded" radius="8" style="width:100%;height:220px;" placeholder="Drop an image"></image-slot>
+  </sc-if>
+
+  <sc-if value="{{ post.growthNote }}" hint-placeholder-val="{{ false }}">
+    <div style="font-size:12px;color:oklch(0.72 0.16 150);">{{ post.growthNote }}</div>
+  </sc-if>
+
+  <div style="display:flex;align-items:center;gap:18px;">
+    <div onClick="{{ post.onToggleLike }}" style="{{ post.likeStyle }}">
+      <span>{{ post.likeLabel }}</span><span>{{ post.likeCount }}</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:5px;font-size:14px;color:oklch(0.54 0.014 70);">
+      <span>{{ post.commentCount }}</span><span>comments</span>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 560, &quot;height&quot;: 160}, &quot;post&quot;: {&quot;editor&quot;: null, &quot;tsType&quot;: &quot;PostDisplay&quot;}}"></script>
+</body>
+</html>

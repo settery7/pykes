@@ -1,103 +1,190 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { AppContext } from "./AppContext.js";
+import { api, connectGrowthSocket } from "./api.js";
+import AuthScreen from "./screens/AuthScreen.jsx";
+import AppShell from "./AppShell.jsx";
+import Composer from "./components/Composer.jsx";
+import FeedScreen from "./screens/FeedScreen.jsx";
+import ExploreScreen from "./screens/ExploreScreen.jsx";
+import ProjectsScreen from "./screens/ProjectsScreen.jsx";
+import FollowingScreen from "./screens/FollowingScreen.jsx";
+import ProfileScreen from "./screens/ProfileScreen.jsx";
+import ProjectScreen from "./screens/ProjectScreen.jsx";
+import NewProjectScreen from "./screens/NewProjectScreen.jsx";
 
-const API = "/api";
+function loadSession() {
+  const token = localStorage.getItem("token");
+  const userRaw = localStorage.getItem("user");
+  if (!token || !userRaw) return null;
+  try {
+    return { token, user: JSON.parse(userRaw) };
+  } catch {
+    return null;
+  }
+}
+
+function renderScreen(route) {
+  switch (route.name) {
+    case "feed": return <FeedScreen />;
+    case "explore": return <ExploreScreen />;
+    case "projects": return <ProjectsScreen />;
+    case "following": return <FollowingScreen />;
+    case "profile": return <ProfileScreen userId={route.params.userId} />;
+    case "project": return <ProjectScreen ownerId={route.params.ownerId} slug={route.params.slug} />;
+    case "newProject": return <NewProjectScreen />;
+    default: return <FeedScreen />;
+  }
+}
 
 export default function App() {
-  const [token, setToken] = useState(localStorage.getItem("token") || "");
-  const [feed, setFeed] = useState([]);
-  const [form, setForm] = useState({ username: "", email: "", password: "" });
-  const [postContent, setPostContent] = useState("");
+  const [session, setSession] = useState(loadSession);
+  const [route, setRoute] = useState({ name: "feed", params: {} });
+  const [viewportWidth, setViewportWidth] = useState(window.innerWidth);
+  const [myProjects, setMyProjects] = useState([]);
+  const [followingIds, setFollowingIds] = useState(new Set());
+  const [growthEvents, setGrowthEvents] = useState({});
+  const [composer, setComposer] = useState({ open: false, projectId: "" });
+  const [toast, setToast] = useState(null);
+  const [dataVersion, setDataVersion] = useState(0);
+
+  const isMobile = viewportWidth < 760;
+  const showRightRail = !isMobile && viewportWidth >= 1180 && (route.name === "feed" || route.name === "explore");
 
   useEffect(() => {
-    if (token) loadFeed();
-  }, [token]);
+    const onResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
-  async function loadFeed() {
-    const res = await fetch(`${API}/posts/feed`, {
-      headers: { Authorization: `Bearer ${token}` },
+  const refreshMyProjects = useCallback(async () => {
+    if (!session) return;
+    const projects = await api.getUserProjects(session.token, session.user.id);
+    setMyProjects(projects);
+  }, [session]);
+
+  useEffect(() => {
+    if (!session) return;
+    refreshMyProjects();
+    api.getFollowing(session.token).then((users) => setFollowingIds(new Set(users.map((u) => u.id))));
+  }, [session, refreshMyProjects]);
+
+  useEffect(() => {
+    if (!session) return;
+    let toastTimer;
+    const disconnect = connectGrowthSocket((project) => {
+      setGrowthEvents((prev) => ({ ...prev, [project.id]: project.growth_stage }));
+      setMyProjects((prev) => prev.map((p) => (p.id === project.id ? { ...p, growth_stage: project.growth_stage } : p)));
+      setToast("Your garden grew.");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => setToast(null), 3200);
     });
-    if (res.ok) setFeed(await res.json());
+    return () => {
+      clearTimeout(toastTimer);
+      disconnect();
+    };
+  }, [session]);
+
+  function handleAuth(user, token) {
+    localStorage.setItem("token", token);
+    localStorage.setItem("user", JSON.stringify(user));
+    setSession({ token, user });
+    setRoute({ name: "feed", params: {} });
   }
 
-  async function register() {
-    const res = await fetch(`${API}/auth/register`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+  function logout() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    setSession(null);
+    setMyProjects([]);
+    setFollowingIds(new Set());
+    setGrowthEvents({});
+    setRoute({ name: "feed", params: {} });
+  }
+
+  function setSessionUser(updatedUser) {
+    setSession((s) => {
+      const user = { ...s.user, ...updatedUser };
+      localStorage.setItem("user", JSON.stringify(user));
+      return { ...s, user };
     });
-    const data = await res.json();
-    if (res.ok) {
-      localStorage.setItem("token", data.token);
-      setToken(data.token);
-    } else {
-      alert(data.error);
+  }
+
+  const goTo = useCallback((name, params = {}) => setRoute({ name, params }), []);
+
+  async function toggleFollow(userId, isFollowing) {
+    setFollowingIds((prev) => {
+      const next = new Set(prev);
+      isFollowing ? next.delete(userId) : next.add(userId);
+      return next;
+    });
+    try {
+      if (isFollowing) await api.unfollow(session.token, userId);
+      else await api.follow(session.token, userId);
+    } catch {
+      setFollowingIds((prev) => {
+        const next = new Set(prev);
+        isFollowing ? next.add(userId) : next.delete(userId);
+        return next;
+      });
     }
   }
 
-  async function createPost() {
-    const res = await fetch(`${API}/posts`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ content: postContent }),
-    });
-    if (res.ok) {
-      setPostContent("");
-      loadFeed();
-    }
+  function openComposer(projectId) {
+    setComposer({ open: true, projectId: projectId || "" });
+  }
+  function closeComposer() {
+    setComposer({ open: false, projectId: "" });
   }
 
-  if (!token) {
-    return (
-      <div style={{ maxWidth: 360, margin: "60px auto", fontFamily: "sans-serif" }}>
-        <h1>Pykes</h1>
-        <input
-          placeholder="username"
-          value={form.username}
-          onChange={(e) => setForm({ ...form, username: e.target.value })}
-        />
-        <br />
-        <input
-          placeholder="email"
-          value={form.email}
-          onChange={(e) => setForm({ ...form, email: e.target.value })}
-        />
-        <br />
-        <input
-          type="password"
-          placeholder="password"
-          value={form.password}
-          onChange={(e) => setForm({ ...form, password: e.target.value })}
-        />
-        <br />
-        <button onClick={register}>Sign up</button>
-      </div>
-    );
+  async function handlePublish(postData) {
+    await api.createPost(session.token, postData);
+    closeComposer();
+    setToast("Posted.");
+    setTimeout(() => setToast(null), 3200);
+    setDataVersion((v) => v + 1);
+  }
+
+  const contextValue = useMemo(
+    () => ({
+      session,
+      route,
+      goTo,
+      isMobile,
+      showRightRail,
+      myProjects,
+      refreshMyProjects,
+      followingIds,
+      toggleFollow,
+      growthEvents,
+      openComposer,
+      closeComposer,
+      showToast: (msg) => { setToast(msg); setTimeout(() => setToast(null), 3200); },
+      logout,
+      setSessionUser,
+      dataVersion,
+    }),
+    [session, route, goTo, isMobile, showRightRail, myProjects, refreshMyProjects, followingIds, growthEvents, dataVersion]
+  );
+
+  if (!session) {
+    return <AuthScreen onAuth={handleAuth} />;
   }
 
   return (
-    <div style={{ maxWidth: 480, margin: "40px auto", fontFamily: "sans-serif" }}>
-      <h1>Pykes</h1>
-      <textarea
-        placeholder="What's happening?"
-        value={postContent}
-        onChange={(e) => setPostContent(e.target.value)}
-        style={{ width: "100%", height: 80 }}
-      />
-      <br />
-      <button onClick={createPost}>Post</button>
+    <AppContext.Provider value={contextValue}>
+      <AppShell>{renderScreen(route)}</AppShell>
 
-      <hr />
+      {composer.open && (
+        <Composer
+          session={session}
+          projects={myProjects}
+          defaultProjectId={composer.projectId}
+          onClose={closeComposer}
+          onPublish={handlePublish}
+        />
+      )}
 
-      {feed.map((post) => (
-        <div key={post.id} style={{ borderBottom: "1px solid #ddd", padding: "8px 0" }}>
-          <strong>{post.display_name || post.username}</strong>
-          <p>{post.content}</p>
-          <small>{new Date(post.created_at).toLocaleString()}</small>
-        </div>
-      ))}
-    </div>
+      {toast && <div className="toast" role="status" aria-live="polite">{toast}</div>}
+    </AppContext.Provider>
   );
 }

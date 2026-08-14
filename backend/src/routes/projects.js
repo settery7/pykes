@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { pool } from "../db/pool.js";
 import { requireAuth } from "../middleware/auth.js";
+import { ah } from "../middleware/asyncHandler.js";
 
 export const projectsRouter = Router();
 
@@ -11,6 +12,17 @@ function slugify(name) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 }
+
+// Explore — every project, most-grown first, with owner display info
+projectsRouter.get("/", requireAuth, ah(async (req, res) => {
+  const result = await pool.query(
+    `SELECT p.id, p.owner_id, p.slug, p.name, p.description, p.growth_stage, p.created_at,
+            u.username, u.display_name
+     FROM projects p JOIN users u ON u.id = p.owner_id
+     ORDER BY p.growth_stage DESC, p.created_at DESC`
+  );
+  res.json(result.rows);
+}));
 
 // Create a project
 projectsRouter.post("/", requireAuth, async (req, res) => {
@@ -40,17 +52,17 @@ projectsRouter.post("/", requireAuth, async (req, res) => {
 });
 
 // List a user's projects
-projectsRouter.get("/user/:userId", async (req, res) => {
+projectsRouter.get("/user/:userId", ah(async (req, res) => {
   const result = await pool.query(
     `SELECT id, owner_id, slug, name, description, growth_stage, created_at
      FROM projects WHERE owner_id = $1 ORDER BY created_at DESC`,
     [req.params.userId]
   );
   res.json(result.rows);
-});
+}));
 
 // Get a single project (by owner + slug) with its recent posts
-projectsRouter.get("/:ownerId/:slug", async (req, res) => {
+projectsRouter.get("/:ownerId/:slug", requireAuth, ah(async (req, res) => {
   const { ownerId, slug } = req.params;
 
   const projectResult = await pool.query(
@@ -65,10 +77,17 @@ projectsRouter.get("/:ownerId/:slug", async (req, res) => {
   }
 
   const postsResult = await pool.query(
-    `SELECT id, user_id, post_type, content, media_url, created_at
-     FROM posts WHERE project_id = $1 ORDER BY created_at DESC LIMIT 50`,
-    [project.id]
+    `SELECT p.id, p.user_id, p.post_type, p.content, p.media_url, p.created_at,
+            u.username, u.display_name, u.avatar_url,
+            (SELECT count(*) FROM likes WHERE post_id = p.id) AS like_count,
+            (SELECT count(*) FROM comments WHERE post_id = p.id) AS comment_count,
+            EXISTS(SELECT 1 FROM likes WHERE post_id = p.id AND user_id = $2) AS liked_by_me
+     FROM posts p
+     JOIN users u ON u.id = p.user_id
+     WHERE p.project_id = $1
+     ORDER BY p.created_at DESC LIMIT 50`,
+    [project.id, req.userId]
   );
 
   res.json({ ...project, posts: postsResult.rows });
-});
+}));

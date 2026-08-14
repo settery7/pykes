@@ -9,6 +9,12 @@
 		reverse_proxy backend:4000
 	}
 
+	# Uploaded post/avatar photos live in MinIO, served straight through
+	handle /media/* {
+		uri strip_prefix /media
+		reverse_proxy minio:9000
+	}
+
 	# Everything else is the frontend
 	handle {
 		reverse_proxy frontend:80
