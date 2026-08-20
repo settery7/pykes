@@ -78,9 +78,14 @@
 .modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
 .modal-head .title { font-weight: 700; font-size: 16px; }
 .chip-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
-.composer-hint { font-size: 12px; padding: 8px 12px; border-radius: 8px; }
+.composer-hint { font-size: 12px; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; }
 .composer-hint.grows { background: var(--accent-tint); color: var(--accent); }
 .composer-hint.neutral { background: var(--elevated); color: var(--text-tertiary); }
+.composer-textarea { height: 110px; margin-bottom: 14px; font-size: 15px; resize: none; line-height: 1.6; }
+.composer-settings { margin-bottom: 4px; }
+.composer-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; }
+.composer-char { font-size: 12px; color: var(--text-tertiary); }
+.composer-char.is-warning { color: var(--danger); font-weight: 600; }
 .media-well { position: relative; margin-bottom: 14px; }
 .media-well img { width: 100%; height: 160px; object-fit: cover; border-radius: 8px; display: block; }
 .media-remove {

@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: backend }
+  template:
+    metadata:
+      labels: { app: backend }
+    spec:
+      containers:
+        - name: backend
+          image: pykes-backend:dev
+          imagePullPolicy: Never   # use the image kind already has loaded
+          ports: [{ containerPort: 4000 }]
+          envFrom:
+            - secretRef: { name: backend-env }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+spec:
+  selector: { app: backend }
+  ports: [{ port: 4000, targetPort: 4000 }]

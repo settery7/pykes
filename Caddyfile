@@ -5,7 +5,8 @@
 	}
 
 	# WebSocket connections go to the backend container too
-	handle /ws/* {
+	# Match /ws exactly — the backend WebSocketServer listens at path "/ws" with no sub-paths
+	handle /ws {
 		reverse_proxy backend:4000
 	}
 

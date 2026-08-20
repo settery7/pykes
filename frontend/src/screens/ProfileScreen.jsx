@@ -62,6 +62,16 @@ export default function ProfileScreen({ userId }) {
     }
   }
 
+  async function handleFollowToggle() {
+    const isFollowing = followingIds.has(userId);
+    setUser((u) => ({ ...u, follower_count: Number(u.follower_count) + (isFollowing ? -1 : 1) }));
+    try {
+      await toggleFollow(userId, isFollowing);
+    } catch {
+      setUser((u) => ({ ...u, follower_count: Number(u.follower_count) + (isFollowing ? 1 : -1) }));
+    }
+  }
+
   if (!user) return null;
 
   const following = followingIds.has(userId);
@@ -115,7 +125,7 @@ export default function ProfileScreen({ userId }) {
                   <button
                     type="button"
                     className={`follow-btn ${following ? "" : "is-not-following"}`}
-                    onClick={() => toggleFollow(userId, following)}
+                    onClick={() => handleFollowToggle()}
                   >
                     {following ? "Following" : "Follow"}
                   </button>
@@ -153,6 +163,9 @@ export default function ProfileScreen({ userId }) {
             onOpenAuthor={(uid) => goTo("profile", { userId: uid })}
             onOpenProject={({ ownerId, slug }) => goTo("project", { ownerId, slug })}
             onLike={handleLike}
+            token={session.token}
+            currentUserId={session.user.id}
+            currentUser={session.user}
           />
         ))}
       </div>

@@ -36,8 +36,8 @@ usersRouter.patch("/me", requireAuth, ah(async (req, res) => {
 usersRouter.get("/:id", ah(async (req, res) => {
   const result = await pool.query(
     `SELECT u.id, u.username, u.display_name, u.bio, u.avatar_url, u.created_at,
-            (SELECT count(*) FROM follows WHERE following_id = u.id) AS follower_count,
-            (SELECT count(*) FROM follows WHERE follower_id = u.id) AS following_count
+            (SELECT count(*)::int FROM follows WHERE following_id = u.id) AS follower_count,
+            (SELECT count(*)::int FROM follows WHERE follower_id = u.id) AS following_count
      FROM users u WHERE u.id = $1`,
     [req.params.id]
   );

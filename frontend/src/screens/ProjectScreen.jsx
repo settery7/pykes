@@ -121,6 +121,9 @@ export default function ProjectScreen({ ownerId, slug }) {
             onOpenAuthor={(uid) => goTo("profile", { userId: uid })}
             onOpenProject={({ ownerId: oid, slug: s }) => goTo("project", { ownerId: oid, slug: s })}
             onLike={handleLike}
+            token={session.token}
+            currentUserId={session.user.id}
+            currentUser={session.user}
           />
         ))}
       </div>

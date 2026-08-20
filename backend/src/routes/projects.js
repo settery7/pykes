@@ -79,8 +79,8 @@ projectsRouter.get("/:ownerId/:slug", requireAuth, ah(async (req, res) => {
   const postsResult = await pool.query(
     `SELECT p.id, p.user_id, p.post_type, p.content, p.media_url, p.created_at,
             u.username, u.display_name, u.avatar_url,
-            (SELECT count(*) FROM likes WHERE post_id = p.id) AS like_count,
-            (SELECT count(*) FROM comments WHERE post_id = p.id) AS comment_count,
+            (SELECT count(*)::int FROM likes WHERE post_id = p.id) AS like_count,
+            (SELECT count(*)::int FROM comments WHERE post_id = p.id) AS comment_count,
             EXISTS(SELECT 1 FROM likes WHERE post_id = p.id AND user_id = $2) AS liked_by_me
      FROM posts p
      JOIN users u ON u.id = p.user_id

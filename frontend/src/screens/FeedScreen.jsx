@@ -52,6 +52,9 @@ export default function FeedScreen() {
               onOpenAuthor={(userId) => goTo("profile", { userId })}
               onOpenProject={({ ownerId, slug }) => goTo("project", { ownerId, slug })}
               onLike={handleLike}
+              token={session.token}
+              currentUserId={session.user.id}
+              currentUser={session.user}
             />
           ))}
         </div>

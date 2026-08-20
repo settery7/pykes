@@ -39,6 +39,10 @@ export const api = {
   follow: (token, userId) => request(`/follows/${userId}`, { method: "POST", token }),
   unfollow: (token, userId) => request(`/follows/${userId}`, { method: "DELETE", token }),
 
+  getComments: (postId) => request(`/comments/post/${postId}`),
+  createComment: (token, body) => request("/comments", { method: "POST", token, body: JSON.stringify(body) }),
+  deleteComment: (token, commentId) => request(`/comments/${commentId}`, { method: "DELETE", token }),
+
   async uploadImage(token, file) {
     const form = new FormData();
     form.append("file", file);
@@ -53,16 +57,15 @@ export const api = {
   },
 };
 
-export function connectGrowthSocket(onGrowth) {
+export function connectSocket(token, onMessage) {
   const protocol = location.protocol === "https:" ? "wss:" : "ws:";
-  const socket = new WebSocket(`${protocol}//${location.host}/ws`);
+  const socket = new WebSocket(`${protocol}//${location.host}/ws?token=${encodeURIComponent(token)}`);
 
   socket.addEventListener("message", (event) => {
     try {
-      const msg = JSON.parse(event.data);
-      if (msg.type === "project_growth") onGrowth(msg.project);
+      onMessage(JSON.parse(event.data));
     } catch {
-      // ignore non-JSON / unrelated frames
+      // ignore non-JSON frames
     }
   });
 

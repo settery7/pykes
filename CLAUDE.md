@@ -15,10 +15,18 @@
 
 ## Architecture Notes
 - Monorepo: `frontend/` (React 18 + Vite) + `backend/` (Express + pg + redis)
-- Auth: JWT via `jsonwebtoken` + `bcryptjs`
+- Auth: JWT via `jsonwebtoken` + `bcryptjs`; rate-limited on `/api/auth/*` (Redis, per-IP)
 - File storage: MinIO (S3-compatible), accessed via `@aws-sdk/client-s3`
-- Real-time: WebSocket server at `/ws` via `ws` library
+- Real-time: WebSocket server at `/ws?token=<jwt>` via `ws` — connections require a
+  valid JWT. Delivery goes through Redis pub/sub (`backend/src/wsHub.js`), not
+  direct socket writes, so `broadcast`/`sendToUser` work correctly across more
+  than one backend replica
 - Reverse proxy: Caddy — see `Caddyfile`
-- DB schema: `backend/src/db/schema.sql` (auto-loaded into Postgres on first run)
+- DB schema: `backend/src/db/schema.sql` bootstraps a brand-new Postgres volume
+  (via `docker-entrypoint-initdb.d`); `backend/migrations/` (node-pg-migrate,
+  runs automatically on boot) is the source of truth for every schema change
+  after that — new changes are new migration files, not edits to schema.sql
 
-## No test suite yet
+## Testing
+- E2E: Playwright, in `e2e/` — see its section in README.md for how to run it
+- No unit/integration test suite for the backend yet

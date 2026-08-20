@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppContext } from "./AppContext.js";
-import { api, connectGrowthSocket } from "./api.js";
+import { api, connectSocket } from "./api.js";
 import AuthScreen from "./screens/AuthScreen.jsx";
 import AppShell from "./AppShell.jsx";
 import Composer from "./components/Composer.jsx";
@@ -71,12 +71,21 @@ export default function App() {
   useEffect(() => {
     if (!session) return;
     let toastTimer;
-    const disconnect = connectGrowthSocket((project) => {
-      setGrowthEvents((prev) => ({ ...prev, [project.id]: project.growth_stage }));
-      setMyProjects((prev) => prev.map((p) => (p.id === project.id ? { ...p, growth_stage: project.growth_stage } : p)));
-      setToast("Your garden grew.");
-      clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => setToast(null), 3200);
+    const disconnect = connectSocket(session.token, (msg) => {
+      if (msg.type === "project_growth") {
+        const project = msg.project;
+        setGrowthEvents((prev) => ({ ...prev, [project.id]: project.growth_stage }));
+        setMyProjects((prev) => prev.map((p) => (p.id === project.id ? { ...p, growth_stage: project.growth_stage } : p)));
+        if (project.owner_id === session.user.id) {
+          setToast("Your garden grew.");
+          clearTimeout(toastTimer);
+          toastTimer = setTimeout(() => setToast(null), 3200);
+        }
+      } else if (msg.type === "new_follower") {
+        setToast(`${msg.follower.display_name || msg.follower.username} started following you.`);
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => setToast(null), 3200);
+      }
     });
     return () => {
       clearTimeout(toastTimer);
@@ -120,12 +129,13 @@ export default function App() {
     try {
       if (isFollowing) await api.unfollow(session.token, userId);
       else await api.follow(session.token, userId);
-    } catch {
+    } catch (err) {
       setFollowingIds((prev) => {
         const next = new Set(prev);
         isFollowing ? next.add(userId) : next.delete(userId);
         return next;
       });
+      throw err;
     }
   }
 
@@ -139,8 +149,15 @@ export default function App() {
   async function handlePublish(postData) {
     await api.createPost(session.token, postData);
     closeComposer();
-    setToast("Posted.");
-    setTimeout(() => setToast(null), 3200);
+    // "shipped"/"release" posts against a project trigger a project_growth
+    // broadcast (see posts.js) that lands the more specific "Your garden
+    // grew." toast — skip "Posted." here so it can't clobber that toast,
+    // whichever of the two arrives first.
+    const triggersGrowth = postData.projectId && (postData.postType === "shipped" || postData.postType === "release");
+    if (!triggersGrowth) {
+      setToast("Posted.");
+      setTimeout(() => setToast(null), 3200);
+    }
     setDataVersion((v) => v + 1);
   }
 
