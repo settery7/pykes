@@ -47,7 +47,13 @@ Then visit `http://localhost` (Caddy listens on 80/443). The frontend talks to
   error handler (no internal error details leak to clients), Postgres/Redis/
   MinIO bound to localhost only, graceful shutdown on `SIGTERM`/`SIGINT`, and
   schema migrations (`backend/migrations/`, via node-pg-migrate) instead of
-  manual DB changes
+  manual DB changes. No CORS middleware, either — the frontend never makes a
+  cross-origin request to this API (Caddy proxies `/api` same-origin in
+  production, Vite's dev server proxy does the same locally), so a permissive
+  `cors()` would only add attack surface
+- CI (`.github/workflows/ci.yml`): backend tests, frontend build, and a
+  Docker image build sanity check run on every push/PR — no deploy step yet,
+  since that depends on a hosting decision that hasn't been made
 - Full endpoint list and request/response shapes: [`docs/API.md`](docs/API.md)
 
 ## What's next (roughly in priority order)
@@ -78,6 +84,25 @@ Note: `backend/.env` (Docker hostnames) and `backend/.env.local` (localhost
 hostnames) are separate on purpose — `npm run dev` always loads `.env.local`,
 so running the backend on your host never collides with the Docker Compose
 version of the same service.
+
+## Running the backend tests
+
+Backend integration tests live in `backend/tests/` (Node's built-in test
+runner, no extra dependencies) and cover auth (register/login, duplicate
+detection, rate limiting) and the `requireAuth` middleware — see
+`backend/tests/api.test.js`.
+
+```bash
+docker compose up -d postgres redis minio   # if not already running
+cd backend
+npm.cmd install
+npm.cmd test                                 # boots the backend itself, then runs the suite
+```
+
+`npm test` starts the real backend as a child process against whatever
+Postgres/Redis/MinIO it finds at the `.env.local` hostnames (same as `npm run
+dev`), so no separate server needs to be started first — same idea as `npx
+playwright test` below for the full stack.
 
 ## Running the E2E tests
 

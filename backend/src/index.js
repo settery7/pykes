@@ -1,6 +1,5 @@
 import "dotenv/config";
 import express from "express";
-import cors from "cors";
 import http from "http";
 import jwt from "jsonwebtoken";
 import multer from "multer";
@@ -24,7 +23,10 @@ const app = express();
 // Trust exactly one hop (Caddy in Compose, Traefik in k3s) so req.ip is the
 // real client address, not the proxy's — the auth rate limiter keys on this.
 app.set("trust proxy", 1);
-app.use(cors());
+// No CORS middleware: the frontend never makes a cross-origin request to
+// this API. Caddy proxies /api same-origin in production, and Vite's dev
+// server proxy (frontend/vite.config.js) does the same locally — so a
+// permissive cors() would only add attack surface, not enable anything.
 app.use(express.json());
 
 app.get("/api/health", (req, res) => res.json({ status: "ok" }));

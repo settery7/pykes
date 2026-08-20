@@ -1,0 +1,110 @@
+name: CI
+
+# Tests + build only — no deploy step. This runs the same regardless of
+# which host the app eventually lands on, so it doesn't need to wait on
+# that decision (see README's "What's next").
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: pykes
+          POSTGRES_PASSWORD: pykes
+          POSTGRES_DB: pykes
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U pykes -d pykes"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      PORT: 4000
+      DATABASE_URL: postgres://pykes:pykes@localhost:5432/pykes
+      REDIS_URL: redis://localhost:6379
+      JWT_SECRET: ci-test-secret-not-for-production
+      S3_ENDPOINT: http://localhost:9000
+      S3_ACCESS_KEY: pykesadmin
+      S3_SECRET_KEY: pykessecret
+      S3_BUCKET: pykes-media
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      # No official MinIO GitHub Actions "service" image runs cleanly
+      # without overriding its command, so it's started as a plain
+      # container instead — same command as docker-compose.yml's minio
+      # service.
+      - name: Start MinIO
+        run: |
+          docker run -d --name minio -p 9000:9000 -p 9001:9001 \
+            -e MINIO_ROOT_USER=pykesadmin -e MINIO_ROOT_PASSWORD=pykessecret \
+            minio/minio server /data --console-address ":9001"
+          for i in $(seq 1 20); do
+            curl -sf http://localhost:9000/minio/health/live && exit 0
+            sleep 2
+          done
+          echo "MinIO never became healthy" >&2
+          exit 1
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Run backend tests
+        working-directory: backend
+        run: npm test
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build backend image
+        run: docker build -t pykes-backend:ci ./backend
+
+      - name: Build frontend image
+        run: docker build -t pykes-frontend:ci ./frontend
