@@ -19,11 +19,18 @@ time you ship. Zero paid services — everything runs in Docker.
 
 ```bash
 cp backend/.env.example backend/.env   # already done for you in this scaffold
-docker compose up --build
+docker compose --profile local-storage up --build
 ```
 
 Then visit `http://localhost` (Caddy listens on 80/443). The frontend talks to
 `/api/*` and `/ws`, which Caddy routes to the backend container.
+
+`--profile local-storage` brings up MinIO alongside everything else, as a
+stand-in for object storage — that's a local-only convenience so you don't
+need a Cloudflare account just to run this on your machine. A real deployment
+skips MinIO entirely and points `S3_*` at Cloudflare R2 instead (free, and
+serves uploads directly rather than through this container) — see
+`backend/.env.example` for the R2-specific variables.
 
 ## What's implemented
 

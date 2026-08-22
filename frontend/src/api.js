@@ -1,4 +1,9 @@
-const API = "/api";
+// Same-origin by default (relative path) — true for local dev (Vite's proxy)
+// and the self-hosted Compose/Caddy setup. Set VITE_API_URL at build time
+// when the frontend and backend are deployed to different origins/domains
+// (e.g. Cloudflare Pages + Render), so this points at the real backend URL.
+const API_BASE = import.meta.env.VITE_API_URL || "";
+const API = `${API_BASE}/api`;
 
 async function request(path, { token, ...options } = {}) {
   const res = await fetch(`${API}${path}`, {
@@ -58,8 +63,10 @@ export const api = {
 };
 
 export function connectSocket(token, onMessage) {
-  const protocol = location.protocol === "https:" ? "wss:" : "ws:";
-  const socket = new WebSocket(`${protocol}//${location.host}/ws?token=${encodeURIComponent(token)}`);
+  const wsBase = API_BASE
+    ? API_BASE.replace(/^http/, "ws")
+    : `${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}`;
+  const socket = new WebSocket(`${wsBase}/ws?token=${encodeURIComponent(token)}`);
 
   socket.addEventListener("message", (event) => {
     try {

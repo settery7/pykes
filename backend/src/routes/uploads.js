@@ -34,5 +34,9 @@ uploadsRouter.post("/", requireAuth, upload.single("file"), ah(async (req, res) 
     })
   );
 
-  res.status(201).json({ url: `/media/${BUCKET}/${key}` });
+  // Local MinIO is reached through Caddy's /media proxy (no public URL of
+  // its own); a real provider like R2 has its own public URL — set
+  // S3_PUBLIC_URL to it in that environment so this points there directly.
+  const publicBase = process.env.S3_PUBLIC_URL || `/media/${BUCKET}`;
+  res.status(201).json({ url: `${publicBase}/${key}` });
 }));

@@ -34,8 +34,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
-      minio:
-        condition: service_started
     networks:
       - pykes_net
 
@@ -69,6 +67,12 @@ services:
       - pykes_net
 
   minio:
+    # Local-only stand-in for object storage. Opt-in via
+    # `docker compose --profile local-storage up` (or by naming it directly,
+    # e.g. `docker compose up postgres redis minio -d`) — a plain
+    # `docker compose up` skips it, since production points S3_* at
+    # Cloudflare R2 instead and never runs this container.
+    profiles: ["local-storage"]
     image: minio/minio
     command: server /data --console-address ":9001"
     environment:
