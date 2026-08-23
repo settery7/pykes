@@ -2,7 +2,7 @@ import { Router } from "express";
 import { pool } from "../db/pool.js";
 import { redisClient } from "../db/redis.js";
 import { requireAuth } from "../middleware/auth.js";
-import { broadcast } from "../wsHub.js";
+import { broadcast, sendToUser } from "../wsHub.js";
 import { ah } from "../middleware/asyncHandler.js";
 
 export const postsRouter = Router();
@@ -145,10 +145,26 @@ postsRouter.get("/user/:userId", requireAuth, ah(async (req, res) => {
 
 // Like a post
 postsRouter.post("/:postId/like", requireAuth, ah(async (req, res) => {
-  await pool.query(
+  const inserted = await pool.query(
     `INSERT INTO likes (user_id, post_id) VALUES ($1, $2)
-     ON CONFLICT DO NOTHING`,
+     ON CONFLICT DO NOTHING
+     RETURNING post_id`,
     [req.userId, req.params.postId]
   );
+
+  // Only a genuinely new like notifies — RETURNING is empty on a repeat
+  // click (ON CONFLICT DO NOTHING), same guard used for follow notices.
+  if (inserted.rows[0]) {
+    const postRes = await pool.query("SELECT user_id FROM posts WHERE id = $1", [req.params.postId]);
+    const authorId = postRes.rows[0]?.user_id;
+    if (authorId && authorId !== req.userId) {
+      const likerInfo = await pool.query(
+        "SELECT id, username, display_name, avatar_url FROM users WHERE id = $1",
+        [req.userId]
+      );
+      await sendToUser(authorId, { type: "post_liked", postId: req.params.postId, liker: likerInfo.rows[0] });
+    }
+  }
+
   res.status(204).end();
 }));

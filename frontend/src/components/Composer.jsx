@@ -19,7 +19,6 @@ export default function Composer({ session, projects, defaultProjectId, onClose,
   const [uploading, setUploading] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState("");
-  const [showMediaWell, setShowMediaWell] = useState(false);
   const fileInputRef = useRef(null);
   const textareaRef = useRef(null);
 
@@ -44,7 +43,6 @@ export default function Composer({ session, projects, defaultProjectId, onClose,
     } catch (err) {
       setError(err.message);
       setMediaPreview(null);
-      setShowMediaWell(false);
     } finally {
       setUploading(false);
     }
@@ -53,7 +51,6 @@ export default function Composer({ session, projects, defaultProjectId, onClose,
   function removeMedia() {
     setMediaUrl(null);
     setMediaPreview(null);
-    setShowMediaWell(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
@@ -143,9 +140,9 @@ export default function Composer({ session, projects, defaultProjectId, onClose,
           {TYPE_HINT[postType]}
         </div>
 
-        {showMediaWell ? (
+        {mediaPreview ? (
           <div className="media-well">
-            {mediaPreview && <img src={mediaPreview} alt="" />}
+            <img src={mediaPreview} alt="" />
             {uploading && <div className="post-time">Uploading…</div>}
             <button type="button" className="media-remove" onClick={removeMedia}>Remove</button>
           </div>
@@ -153,7 +150,7 @@ export default function Composer({ session, projects, defaultProjectId, onClose,
           <button
             type="button"
             className="add-photo-link"
-            onClick={() => { setShowMediaWell(true); fileInputRef.current?.click(); }}
+            onClick={() => fileInputRef.current?.click()}
           >
             + Add photo
           </button>

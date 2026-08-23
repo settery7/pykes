@@ -134,6 +134,19 @@ textarea.input { resize: vertical; }
 .post-card.type-shipped { background: var(--accent-tint); border-color: var(--accent-border); }
 .post-card.type-release { background: var(--amber-tint); border-color: var(--amber-border); }
 
+/* Feed-card photo treatment (Facebook/Reddit/Instagram-style): fill the
+   card's width and hold a consistent max height regardless of the
+   uploaded image's native proportions, cropping tall/wide outliers rather
+   than letting one photo's dimensions blow out the whole card. */
+.post-photo {
+  width: 100%;
+  max-height: 420px;
+  object-fit: cover;
+  display: block;
+  border-radius: var(--radius-input);
+  background: var(--surface-2);
+}
+
 /* — avatar — */
 .avatar {
   color: white; border-radius: 50%; display: flex; align-items: center;

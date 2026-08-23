@@ -22,6 +22,11 @@ export default function AppShell({ children }) {
   const [trending, setTrending] = useState([]);
   const [suggested, setSuggested] = useState([]);
 
+  // followingIds is intentionally not a dependency here: this should filter
+  // out already-followed people once, when the list loads, not re-filter
+  // (and make someone vanish mid-view) every time you follow one of them
+  // from this exact widget — the button below reflects the current state
+  // in place instead.
   useEffect(() => {
     if (!showRightRail) return;
     api.exploreProjects(session.token).then((projects) => {
@@ -30,7 +35,7 @@ export default function AppShell({ children }) {
     api.exploreUsers(session.token).then((users) => {
       setSuggested(users.filter((u) => !followingIds.has(u.id)).slice(0, 3));
     });
-  }, [showRightRail, session, followingIds]);
+  }, [showRightRail, session]);
 
   const isProfileActive = route.name === "profile" && route.params.userId === session.user.id;
 
@@ -112,16 +117,25 @@ export default function AppShell({ children }) {
             <div>
               <div className="eyebrow">Suggested creators</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {suggested.map((u) => (
-                  <div key={u.id} className="suggested-row">
-                    <Avatar user={u} size={28} onClick={() => goTo("profile", { userId: u.id })} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div className="meta-name">{u.display_name}</div>
-                      <div className="meta-sub">@{u.username}</div>
+                {suggested.map((u) => {
+                  const following = followingIds.has(u.id);
+                  return (
+                    <div key={u.id} className="suggested-row">
+                      <Avatar user={u} size={28} onClick={() => goTo("profile", { userId: u.id })} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div className="meta-name">{u.display_name}</div>
+                        <div className="meta-sub">@{u.username}</div>
+                      </div>
+                      <button
+                        type="button"
+                        className={`follow-btn ${following ? "" : "is-not-following"}`}
+                        onClick={() => toggleFollow(u.id, following)}
+                      >
+                        {following ? "Following" : "Follow"}
+                      </button>
                     </div>
-                    <button type="button" className="follow-btn is-not-following" onClick={() => toggleFollow(u.id, false)}>Follow</button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>

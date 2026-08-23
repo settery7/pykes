@@ -85,6 +85,10 @@ export default function App() {
         setToast(`${msg.follower.display_name || msg.follower.username} started following you.`);
         clearTimeout(toastTimer);
         toastTimer = setTimeout(() => setToast(null), 3200);
+      } else if (msg.type === "post_liked") {
+        setToast(`${msg.liker.display_name || msg.liker.username} liked your post.`);
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => setToast(null), 3200);
       }
     });
     return () => {
