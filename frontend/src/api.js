@@ -30,6 +30,7 @@ export const api = {
   getUserPosts: (token, userId) => request(`/posts/user/${userId}`, { token }),
   createPost: (token, body) => request("/posts", { method: "POST", token, body: JSON.stringify(body) }),
   likePost: (token, postId) => request(`/posts/${postId}/like`, { method: "POST", token }),
+  unlikePost: (token, postId) => request(`/posts/${postId}/like`, { method: "DELETE", token }),
 
   exploreProjects: (token) => request("/projects", { token }),
   getUserProjects: (token, userId) => request(`/projects/user/${userId}`, { token }),

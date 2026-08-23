@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 import { makeUser, registerViaUI, publishPost, postCardByContent, uniqueSuffix } from "../utils/helpers.js";
 
 test.describe("Like", () => {
-  test("liking a post increments the count and reflects the liked state", async ({ page }) => {
+  test("liking and unliking a post toggles the count and state", async ({ page }) => {
     const user = makeUser("liker");
     const content = `Post to like ${uniqueSuffix()}`;
 
@@ -18,10 +18,17 @@ test.describe("Like", () => {
 
     await likeBtn.click();
 
-    const likedBtn = card.getByRole("button", { name: /You liked this post/ });
+    const likedBtn = card.getByRole("button", { name: /Unlike this post/ });
     await expect(likedBtn).toHaveAttribute("aria-pressed", "true");
-    await expect(likedBtn).toBeDisabled();
     await expect(likedBtn).toContainText("1");
+
+    // Toggling back off is the actual point of this test — the button used
+    // to permanently disable itself once liked, with no way to undo it.
+    await likedBtn.click();
+
+    const unlikedBtn = card.getByRole("button", { name: /Like this post/ });
+    await expect(unlikedBtn).toHaveAttribute("aria-pressed", "false");
+    await expect(unlikedBtn).toContainText("0");
   });
 });
 

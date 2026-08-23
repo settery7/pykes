@@ -6,7 +6,7 @@ import { fmtTimeAgo } from "../utils.js";
 const TAG_CLASS = { update: "tag-update", idea: "tag-idea", bug: "tag-bug", shipped: "tag-shipped", release: "tag-release" };
 const COMMENT_MAX = 1000;
 
-export default function PostCard({ post, onOpenAuthor, onOpenProject, onLike, token, currentUserId, currentUser }) {
+export default function PostCard({ post, onOpenAuthor, onOpenProject, onLike, onUnlike, token, currentUserId, currentUser }) {
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState(null);
   const [loadingComments, setLoadingComments] = useState(false);
@@ -111,10 +111,9 @@ export default function PostCard({ post, onOpenAuthor, onOpenProject, onLike, to
         <button
           type="button"
           className={`like-btn ${liked ? "is-liked" : ""}`}
-          onClick={() => !liked && onLike(post.id)}
-          disabled={liked}
+          onClick={() => (liked ? onUnlike(post.id) : onLike(post.id))}
           aria-pressed={liked}
-          aria-label={liked ? `You liked this post (${post.like_count} likes)` : `Like this post (${post.like_count} likes)`}
+          aria-label={liked ? `Unlike this post (${post.like_count} likes)` : `Like this post (${post.like_count} likes)`}
         >
           <span aria-hidden="true">{liked ? "♥" : "♡"}</span>
           <span aria-hidden="true">{post.like_count}</span>

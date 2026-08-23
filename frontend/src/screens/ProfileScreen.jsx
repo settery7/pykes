@@ -62,6 +62,15 @@ export default function ProfileScreen({ userId }) {
     }
   }
 
+  async function handleUnlike(postId) {
+    setPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, liked_by_me: false, like_count: p.like_count - 1 } : p)));
+    try {
+      await api.unlikePost(session.token, postId);
+    } catch {
+      setPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, liked_by_me: true, like_count: p.like_count + 1 } : p)));
+    }
+  }
+
   async function handleFollowToggle() {
     const isFollowing = followingIds.has(userId);
     setUser((u) => ({ ...u, follower_count: Number(u.follower_count) + (isFollowing ? -1 : 1) }));
@@ -163,6 +172,7 @@ export default function ProfileScreen({ userId }) {
             onOpenAuthor={(uid) => goTo("profile", { userId: uid })}
             onOpenProject={({ ownerId, slug }) => goTo("project", { ownerId, slug })}
             onLike={handleLike}
+            onUnlike={handleUnlike}
             token={session.token}
             currentUserId={session.user.id}
             currentUser={session.user}

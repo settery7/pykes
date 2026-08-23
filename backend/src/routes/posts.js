@@ -174,3 +174,12 @@ postsRouter.post("/:postId/like", requireAuth, likeRateLimit, ah(async (req, res
 
   res.status(204).end();
 }));
+
+// Unlike a post
+postsRouter.delete("/:postId/like", requireAuth, ah(async (req, res) => {
+  await pool.query(
+    "DELETE FROM likes WHERE user_id = $1 AND post_id = $2",
+    [req.userId, req.params.postId]
+  );
+  res.status(204).end();
+}));

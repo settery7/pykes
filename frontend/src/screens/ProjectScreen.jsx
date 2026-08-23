@@ -42,6 +42,21 @@ export default function ProjectScreen({ ownerId, slug }) {
     }
   }
 
+  async function handleUnlike(postId) {
+    setProject((p) => ({
+      ...p,
+      posts: p.posts.map((post) => (post.id === postId ? { ...post, liked_by_me: false, like_count: post.like_count - 1 } : post)),
+    }));
+    try {
+      await api.unlikePost(session.token, postId);
+    } catch {
+      setProject((p) => ({
+        ...p,
+        posts: p.posts.map((post) => (post.id === postId ? { ...post, liked_by_me: true, like_count: post.like_count + 1 } : post)),
+      }));
+    }
+  }
+
   return (
     <div>
       <button type="button" onClick={() => goTo("feed")} style={{ fontSize: 13, color: "var(--text-tertiary)", cursor: "pointer", marginBottom: 14, display: "block" }}>
@@ -121,6 +136,7 @@ export default function ProjectScreen({ ownerId, slug }) {
             onOpenAuthor={(uid) => goTo("profile", { userId: uid })}
             onOpenProject={({ ownerId: oid, slug: s }) => goTo("project", { ownerId: oid, slug: s })}
             onLike={handleLike}
+            onUnlike={handleUnlike}
             token={session.token}
             currentUserId={session.user.id}
             currentUser={session.user}
