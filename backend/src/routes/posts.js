@@ -4,11 +4,17 @@ import { redisClient } from "../db/redis.js";
 import { requireAuth } from "../middleware/auth.js";
 import { broadcast, sendToUser } from "../wsHub.js";
 import { ah } from "../middleware/asyncHandler.js";
+import { rateLimit } from "../middleware/rateLimit.js";
 
 export const postsRouter = Router();
 
 const FEED_MAX = 50;
 const CONTENT_MAX_LEN = 5000;
+// Looser than comments' 10/60s — liking/following is a quick tap, not
+// typing, so a normal person scrolling and liking several posts in a row
+// should never brush against this.
+const postRateLimit = rateLimit({ keyPrefix: "postrate", max: 20, windowS: 60, keyFn: (req) => req.userId });
+const likeRateLimit = rateLimit({ keyPrefix: "likerate", max: 30, windowS: 60, keyFn: (req) => req.userId });
 
 const FEED_SELECT = `
   SELECT p.id, p.content, p.media_url, p.project_id, p.post_type, p.created_at,
@@ -46,7 +52,7 @@ async function fanOutPost(post) {
 }
 
 // Create a post
-postsRouter.post("/", requireAuth, ah(async (req, res) => {
+postsRouter.post("/", requireAuth, postRateLimit, ah(async (req, res) => {
   const { content, mediaUrl, projectId, postType } = req.body;
 
   if (!content) {
@@ -144,7 +150,7 @@ postsRouter.get("/user/:userId", requireAuth, ah(async (req, res) => {
 }));
 
 // Like a post
-postsRouter.post("/:postId/like", requireAuth, ah(async (req, res) => {
+postsRouter.post("/:postId/like", requireAuth, likeRateLimit, ah(async (req, res) => {
   const inserted = await pool.query(
     `INSERT INTO likes (user_id, post_id) VALUES ($1, $2)
      ON CONFLICT DO NOTHING

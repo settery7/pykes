@@ -2,32 +2,26 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { pool } from "../db/pool.js";
-import { redisClient } from "../db/redis.js";
+import { rateLimit } from "../middleware/rateLimit.js";
 
 export const authRouter = Router();
-
-const RATE_LIMIT_MAX = 10;
-const RATE_LIMIT_WINDOW_S = 60;
 
 // Per-IP, per-route limit — register/login have no user id to key on yet
 // (that's the whole problem these two routes solve), so req.ip is the only
 // signal available. Requires app.set("trust proxy", ...) upstream, or every
 // request behind Caddy/Traefik would share one IP and rate-limit each other.
-async function rateLimit(req, res, next) {
-  const key = `authrate:${req.path}:${req.ip}`;
-  const count = await redisClient.incr(key);
-  if (count === 1) await redisClient.expire(key, RATE_LIMIT_WINDOW_S);
-  if (count > RATE_LIMIT_MAX) {
-    return res.status(429).json({ error: "Too many attempts — please wait a moment." });
-  }
-  next();
-}
+const authRateLimit = rateLimit({
+  keyPrefix: "authrate",
+  max: 10,
+  windowS: 60,
+  keyFn: (req) => `${req.path}:${req.ip}`,
+});
 
 function signToken(userId) {
   return jwt.sign({ sub: userId }, process.env.JWT_SECRET, { expiresIn: "7d" });
 }
 
-authRouter.post("/register", rateLimit, async (req, res) => {
+authRouter.post("/register", authRateLimit, async (req, res) => {
   const { username, email, password, displayName } = req.body;
 
   if (!username || !email || !password) {
@@ -57,7 +51,7 @@ authRouter.post("/register", rateLimit, async (req, res) => {
   }
 });
 
-authRouter.post("/login", rateLimit, async (req, res) => {
+authRouter.post("/login", authRateLimit, async (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {

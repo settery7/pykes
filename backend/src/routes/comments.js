@@ -1,14 +1,13 @@
 import { Router } from "express";
 import { pool } from "../db/pool.js";
-import { redisClient } from "../db/redis.js";
 import { requireAuth } from "../middleware/auth.js";
 import { ah } from "../middleware/asyncHandler.js";
+import { rateLimit } from "../middleware/rateLimit.js";
 
 export const commentsRouter = Router();
 
 const COMMENT_MAX_LEN = 1000;
-const RATE_LIMIT_MAX = 10;
-const RATE_LIMIT_WINDOW_S = 60;
+const commentRateLimit = rateLimit({ keyPrefix: "commentrate", max: 10, windowS: 60, keyFn: (req) => req.userId });
 
 // GET /api/comments/post/:postId — public, oldest-first thread order
 commentsRouter.get("/post/:postId", ah(async (req, res) => {
@@ -25,7 +24,7 @@ commentsRouter.get("/post/:postId", ah(async (req, res) => {
 }));
 
 // POST /api/comments — create a comment (auth required)
-commentsRouter.post("/", requireAuth, ah(async (req, res) => {
+commentsRouter.post("/", requireAuth, commentRateLimit, ah(async (req, res) => {
   const { postId, content } = req.body;
 
   if (!postId) return res.status(400).json({ error: "postId is required" });
@@ -34,14 +33,6 @@ commentsRouter.post("/", requireAuth, ah(async (req, res) => {
   if (!trimmed) return res.status(400).json({ error: "content is required" });
   if (trimmed.length > COMMENT_MAX_LEN) {
     return res.status(400).json({ error: `Comment must be ${COMMENT_MAX_LEN} characters or fewer` });
-  }
-
-  // Per-user rate limit: RATE_LIMIT_MAX comments per RATE_LIMIT_WINDOW_S seconds
-  const rateKey = `comment_rate:${req.userId}`;
-  const rateCount = await redisClient.incr(rateKey);
-  if (rateCount === 1) await redisClient.expire(rateKey, RATE_LIMIT_WINDOW_S);
-  if (rateCount > RATE_LIMIT_MAX) {
-    return res.status(429).json({ error: "Too many comments — please wait a moment." });
   }
 
   // Verify the post exists (prevents orphaned comments + IDOR via bogus postId)

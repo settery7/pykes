@@ -4,10 +4,14 @@ import { redisClient } from "../db/redis.js";
 import { requireAuth } from "../middleware/auth.js";
 import { ah } from "../middleware/asyncHandler.js";
 import { sendToUser } from "../wsHub.js";
+import { rateLimit } from "../middleware/rateLimit.js";
 
 export const followsRouter = Router();
 
 const FEED_MAX = 50;
+// Only on follow, not unfollow — following is the expensive path (backfill
+// ZADDs + a notification), unfollow is one bounded ZREM.
+const followRateLimit = rateLimit({ keyPrefix: "followrate", max: 30, windowS: 60, keyFn: (req) => req.userId });
 
 // Users the caller follows, with display info (for the Following screen)
 followsRouter.get("/following", requireAuth, ah(async (req, res) => {
@@ -21,7 +25,7 @@ followsRouter.get("/following", requireAuth, ah(async (req, res) => {
   res.json(result.rows);
 }));
 
-followsRouter.post("/:userId", requireAuth, ah(async (req, res) => {
+followsRouter.post("/:userId", requireAuth, followRateLimit, ah(async (req, res) => {
   if (req.userId === req.params.userId) {
     return res.status(400).json({ error: "Cannot follow yourself" });
   }
