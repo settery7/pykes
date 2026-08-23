@@ -62,19 +62,42 @@ export const api = {
   },
 };
 
+// Reconnects automatically (2s delay) if the socket drops for any reason —
+// a page reload racing the initial connection, a network blip, or Render's
+// free tier putting the backend to sleep after inactivity. Without this,
+// a dropped connection stayed dropped until the user manually refreshed,
+// silently killing live notifications until then.
 export function connectSocket(token, onMessage) {
   const wsBase = API_BASE
     ? API_BASE.replace(/^http/, "ws")
     : `${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}`;
-  const socket = new WebSocket(`${wsBase}/ws?token=${encodeURIComponent(token)}`);
 
-  socket.addEventListener("message", (event) => {
-    try {
-      onMessage(JSON.parse(event.data));
-    } catch {
-      // ignore non-JSON frames
-    }
-  });
+  let socket;
+  let reconnectTimer;
+  let closedByCaller = false;
 
-  return () => socket.close();
+  function connect() {
+    socket = new WebSocket(`${wsBase}/ws?token=${encodeURIComponent(token)}`);
+
+    socket.addEventListener("message", (event) => {
+      try {
+        onMessage(JSON.parse(event.data));
+      } catch {
+        // ignore non-JSON frames
+      }
+    });
+
+    socket.addEventListener("close", () => {
+      if (closedByCaller) return;
+      reconnectTimer = setTimeout(connect, 2000);
+    });
+  }
+
+  connect();
+
+  return () => {
+    closedByCaller = true;
+    clearTimeout(reconnectTimer);
+    socket.close();
+  };
 }
