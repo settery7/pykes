@@ -123,8 +123,8 @@ export default function AppShell({ children }) {
                     <div key={u.id} className="suggested-row">
                       <Avatar user={u} size={28} onClick={() => goTo("profile", { userId: u.id })} />
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div className="meta-name">{u.display_name}</div>
-                        <div className="meta-sub">@{u.username}</div>
+                        <div className="meta-name truncate">{u.display_name}</div>
+                        <div className="meta-sub truncate">@{u.username}</div>
                       </div>
                       <button
                         type="button"

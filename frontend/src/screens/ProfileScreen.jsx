@@ -71,6 +71,16 @@ export default function ProfileScreen({ userId }) {
     }
   }
 
+  async function handleEditPost(postId, content) {
+    const updated = await api.updatePost(session.token, postId, { content });
+    setPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, content: updated.content, edited_at: updated.edited_at } : p)));
+  }
+
+  async function handleDeletePost(postId) {
+    await api.deletePost(session.token, postId);
+    setPosts((prev) => prev.filter((p) => p.id !== postId));
+  }
+
   async function handleFollowToggle() {
     const isFollowing = followingIds.has(userId);
     setUser((u) => ({ ...u, follower_count: Number(u.follower_count) + (isFollowing ? -1 : 1) }));
@@ -173,6 +183,8 @@ export default function ProfileScreen({ userId }) {
             onOpenProject={({ ownerId, slug }) => goTo("project", { ownerId, slug })}
             onLike={handleLike}
             onUnlike={handleUnlike}
+            onEditPost={handleEditPost}
+            onDeletePost={handleDeletePost}
             token={session.token}
             currentUserId={session.user.id}
             currentUser={session.user}

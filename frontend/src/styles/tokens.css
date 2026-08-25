@@ -34,6 +34,19 @@
 
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font-ui); }
+
+/* Themed scrollbars — the OS default (light gray track/thumb) stands out
+   hard against this dark UI otherwise. Applied globally so every scrollable
+   region (sidebar, feed, right rail, modals, textareas) matches without
+   needing a rule per container. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) var(--bg-recessed);
+}
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: var(--bg-recessed); }
+*::-webkit-scrollbar-thumb { background: var(--border); border-radius: 8px; }
+*::-webkit-scrollbar-thumb:hover { background: var(--text-tertiary); }
 a { color: var(--accent); text-decoration: none; }
 a:hover { color: oklch(0.8 0.16 150); }
 ::placeholder { color: var(--text-tertiary); }
@@ -189,12 +202,6 @@ textarea.input { resize: vertical; }
 .comment-author { font-size: 13px; font-weight: 600; }
 .comment-time { font-size: 11px; color: var(--text-tertiary); }
 .comment-text { margin: 0; font-size: 13px; line-height: 1.45; color: var(--text-secondary); white-space: pre-wrap; word-break: break-word; }
-.comment-delete {
-  color: var(--text-tertiary); opacity: 0; font-size: 18px; line-height: 1;
-  padding: 0 2px; flex: none; align-self: flex-start;
-}
-.comment-item:hover .comment-delete,
-.comment-item:focus-within .comment-delete { opacity: 1; }
 
 /* — comment composer form — */
 .comment-form { display: flex; align-items: flex-start; gap: 8px; }

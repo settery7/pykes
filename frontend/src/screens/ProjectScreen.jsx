@@ -57,6 +57,19 @@ export default function ProjectScreen({ ownerId, slug }) {
     }
   }
 
+  async function handleEditPost(postId, content) {
+    const updated = await api.updatePost(session.token, postId, { content });
+    setProject((p) => ({
+      ...p,
+      posts: p.posts.map((post) => (post.id === postId ? { ...post, content: updated.content, edited_at: updated.edited_at } : post)),
+    }));
+  }
+
+  async function handleDeletePost(postId) {
+    await api.deletePost(session.token, postId);
+    setProject((p) => ({ ...p, posts: p.posts.filter((post) => post.id !== postId) }));
+  }
+
   return (
     <div>
       <button type="button" onClick={() => goTo("feed")} style={{ fontSize: 13, color: "var(--text-tertiary)", cursor: "pointer", marginBottom: 14, display: "block" }}>
@@ -137,6 +150,8 @@ export default function ProjectScreen({ ownerId, slug }) {
             onOpenProject={({ ownerId: oid, slug: s }) => goTo("project", { ownerId: oid, slug: s })}
             onLike={handleLike}
             onUnlike={handleUnlike}
+            onEditPost={handleEditPost}
+            onDeletePost={handleDeletePost}
             token={session.token}
             currentUserId={session.user.id}
             currentUser={session.user}

@@ -25,7 +25,7 @@ export default function Composer({ session, projects, defaultProjectId, onClose,
   const CONTENT_MAX = 2000;
   const growsGarden = postType === "shipped" || postType === "release";
   const charsLeft = CONTENT_MAX - content.length;
-  const publishDisabled = !content.trim() || uploading || publishing;
+  const publishDisabled = (!content.trim() && !mediaUrl) || uploading || publishing;
 
   useEffect(() => {
     textareaRef.current?.focus();

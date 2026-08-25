@@ -17,7 +17,7 @@ const postRateLimit = rateLimit({ keyPrefix: "postrate", max: 20, windowS: 60, k
 const likeRateLimit = rateLimit({ keyPrefix: "likerate", max: 30, windowS: 60, keyFn: (req) => req.userId });
 
 const FEED_SELECT = `
-  SELECT p.id, p.content, p.media_url, p.project_id, p.post_type, p.created_at,
+  SELECT p.id, p.content, p.media_url, p.project_id, p.post_type, p.created_at, p.edited_at,
          u.id AS user_id, u.username, u.display_name, u.avatar_url,
          pr.name AS project_name, pr.slug AS project_slug, pr.owner_id AS project_owner_id,
          pr.growth_stage AS project_growth_stage,
@@ -54,11 +54,12 @@ async function fanOutPost(post) {
 // Create a post
 postsRouter.post("/", requireAuth, postRateLimit, ah(async (req, res) => {
   const { content, mediaUrl, projectId, postType } = req.body;
+  const trimmedContent = typeof content === "string" ? content.trim() : "";
 
-  if (!content) {
-    return res.status(400).json({ error: "content is required" });
+  if (!trimmedContent && !mediaUrl) {
+    return res.status(400).json({ error: "content or a photo is required" });
   }
-  if (content.length > CONTENT_MAX_LEN) {
+  if (trimmedContent.length > CONTENT_MAX_LEN) {
     return res.status(400).json({ error: `content must be ${CONTENT_MAX_LEN} characters or fewer` });
   }
 
@@ -71,8 +72,8 @@ postsRouter.post("/", requireAuth, postRateLimit, ah(async (req, res) => {
   const result = await pool.query(
     `INSERT INTO posts (user_id, project_id, post_type, content, media_url)
      VALUES ($1, $2, $3, $4, $5)
-     RETURNING id, user_id, project_id, post_type, content, media_url, created_at`,
-    [req.userId, projectId || null, type, content, mediaUrl || null]
+     RETURNING id, user_id, project_id, post_type, content, media_url, created_at, edited_at`,
+    [req.userId, projectId || null, type, trimmedContent, mediaUrl || null]
   );
   const post = result.rows[0];
 
@@ -181,5 +182,72 @@ postsRouter.delete("/:postId/like", requireAuth, ah(async (req, res) => {
     "DELETE FROM likes WHERE user_id = $1 AND post_id = $2",
     [req.userId, req.params.postId]
   );
+  res.status(204).end();
+}));
+
+// Edit a post's caption (author-only). Deliberately content-only — project,
+// type, and photo aren't editable here, since post_type can carry
+// already-applied growth-stage side effects that shouldn't be re-triggered
+// by an edit. The pre-edit content is snapshotted into post_edits first, so
+// a no-change save (identical trimmed content) is skipped to avoid noise.
+postsRouter.patch("/:id", requireAuth, ah(async (req, res) => {
+  const trimmedContent = typeof req.body.content === "string" ? req.body.content.trim() : "";
+  if (trimmedContent.length > CONTENT_MAX_LEN) {
+    return res.status(400).json({ error: `content must be ${CONTENT_MAX_LEN} characters or fewer` });
+  }
+
+  const existing = await pool.query(
+    "SELECT content, media_url FROM posts WHERE id = $1 AND user_id = $2",
+    [req.params.id, req.userId]
+  );
+  if (!existing.rows[0]) {
+    return res.status(404).json({ error: "Post not found or not yours" });
+  }
+  if (!trimmedContent && !existing.rows[0].media_url) {
+    return res.status(400).json({ error: "content or a photo is required" });
+  }
+
+  if (trimmedContent === existing.rows[0].content) {
+    const unchanged = await pool.query(
+      `SELECT id, user_id, project_id, post_type, content, media_url, created_at, edited_at
+       FROM posts WHERE id = $1`,
+      [req.params.id]
+    );
+    return res.json(unchanged.rows[0]);
+  }
+
+  await pool.query(
+    "INSERT INTO post_edits (post_id, content) VALUES ($1, $2)",
+    [req.params.id, existing.rows[0].content]
+  );
+
+  const result = await pool.query(
+    `UPDATE posts SET content = $1, edited_at = now() WHERE id = $2 AND user_id = $3
+     RETURNING id, user_id, project_id, post_type, content, media_url, created_at, edited_at`,
+    [trimmedContent, req.params.id, req.userId]
+  );
+  res.json(result.rows[0]);
+}));
+
+// A post's edit history — the content each edit overwrote, most recent first.
+postsRouter.get("/:id/history", requireAuth, ah(async (req, res) => {
+  const result = await pool.query(
+    "SELECT id, content, edited_at FROM post_edits WHERE post_id = $1 ORDER BY edited_at DESC",
+    [req.params.id]
+  );
+  res.json(result.rows);
+}));
+
+// Delete a post (author-only). Likes/comments cascade via FK; a stray id
+// left behind in Redis feed lines is harmless — the feed hydration query
+// inner-joins posts, so it just drops off silently on the next read.
+postsRouter.delete("/:id", requireAuth, ah(async (req, res) => {
+  const result = await pool.query(
+    "DELETE FROM posts WHERE id = $1 AND user_id = $2 RETURNING id",
+    [req.params.id, req.userId]
+  );
+  if (!result.rows[0]) {
+    return res.status(404).json({ error: "Post not found or not yours" });
+  }
   res.status(204).end();
 }));

@@ -29,6 +29,9 @@ export const api = {
   getFeed: (token) => request("/posts/feed", { token }),
   getUserPosts: (token, userId) => request(`/posts/user/${userId}`, { token }),
   createPost: (token, body) => request("/posts", { method: "POST", token, body: JSON.stringify(body) }),
+  updatePost: (token, postId, body) => request(`/posts/${postId}`, { method: "PATCH", token, body: JSON.stringify(body) }),
+  deletePost: (token, postId) => request(`/posts/${postId}`, { method: "DELETE", token }),
+  getPostHistory: (token, postId) => request(`/posts/${postId}/history`, { token }),
   likePost: (token, postId) => request(`/posts/${postId}/like`, { method: "POST", token }),
   unlikePost: (token, postId) => request(`/posts/${postId}/like`, { method: "DELETE", token }),
 
@@ -47,7 +50,9 @@ export const api = {
 
   getComments: (postId) => request(`/comments/post/${postId}`),
   createComment: (token, body) => request("/comments", { method: "POST", token, body: JSON.stringify(body) }),
+  updateComment: (token, commentId, body) => request(`/comments/${commentId}`, { method: "PATCH", token, body: JSON.stringify(body) }),
   deleteComment: (token, commentId) => request(`/comments/${commentId}`, { method: "DELETE", token }),
+  getCommentHistory: (commentId) => request(`/comments/${commentId}/history`),
 
   async uploadImage(token, file) {
     const form = new FormData();

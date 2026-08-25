@@ -31,6 +31,16 @@ export default function FeedScreen() {
     }
   }
 
+  async function handleEditPost(postId, content) {
+    const updated = await api.updatePost(session.token, postId, { content });
+    setPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, content: updated.content, edited_at: updated.edited_at } : p)));
+  }
+
+  async function handleDeletePost(postId) {
+    await api.deletePost(session.token, postId);
+    setPosts((prev) => prev.filter((p) => p.id !== postId));
+  }
+
   return (
     <div>
       <div className="page-header">
@@ -62,6 +72,8 @@ export default function FeedScreen() {
               onOpenProject={({ ownerId, slug }) => goTo("project", { ownerId, slug })}
               onLike={handleLike}
               onUnlike={handleUnlike}
+              onEditPost={handleEditPost}
+              onDeletePost={handleDeletePost}
               token={session.token}
               currentUserId={session.user.id}
               currentUser={session.user}
