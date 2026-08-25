@@ -45,3 +45,33 @@ export async function registerUser(prefix) {
   }
   return { user, token: data.token, id: data.user.id };
 }
+
+/** Creates a post as the given token's user — for tests (comments, edit
+ * history, etc.) that need an existing post but aren't testing post
+ * creation itself. */
+export async function createPost(token, body) {
+  const { status, data } = await apiRequest("/api/posts", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify(body),
+  });
+  if (status !== 201) {
+    throw new Error(`createPost setup failed: ${status} ${JSON.stringify(data)}`);
+  }
+  return data;
+}
+
+/** Creates a comment as the given token's user — for tests (edit history,
+ * delete, etc.) that need an existing comment but aren't testing comment
+ * creation itself. */
+export async function createComment(token, postId, content) {
+  const { status, data } = await apiRequest("/api/comments", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ postId, content }),
+  });
+  if (status !== 201) {
+    throw new Error(`createComment setup failed: ${status} ${JSON.stringify(data)}`);
+  }
+  return data;
+}

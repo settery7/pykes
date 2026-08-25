@@ -1,4 +1,5 @@
 import { expect } from "@playwright/test";
+import { resetAuthRateLimit } from "./resetAuthRateLimit.js";
 
 /** A short, collision-resistant suffix for usernames/emails/content so
  * repeated runs against the same disposable dev DB never collide. */
@@ -65,6 +66,7 @@ async function withSocketReady(page, action) {
  * returns the live WebSocket handle once the server has acked the
  * connection, so callers can assert on targeted/broadcast WS events. */
 export async function registerViaUI(page, user) {
+  await resetAuthRateLimit();
   return withSocketReady(page, async () => {
     await page.goto("/");
     await page.getByRole("button", { name: "Sign up" }).click();
@@ -79,6 +81,7 @@ export async function registerViaUI(page, user) {
 /** Logs in an existing user through the real Auth UI (Log in tab, the
  * default view) and waits for the WS connection to be acked. */
 export async function loginViaUI(page, user) {
+  await resetAuthRateLimit();
   return withSocketReady(page, async () => {
     await page.goto("/");
     await page.locator("#auth-email").fill(user.email);
@@ -102,6 +105,7 @@ export async function logoutViaUI(page) {
  * incidental/secondary actors in a scenario — e.g. "some other logged-in
  * user who isn't involved in the thing being tested." Returns { user, token }. */
 export async function registerViaApi(request, user) {
+  await resetAuthRateLimit();
   const res = await request.post("/api/auth/register", { data: user });
   if (!res.ok()) {
     throw new Error(`API register failed: ${res.status()} ${await res.text()}`);

@@ -9,7 +9,7 @@
     "migrate:create": "node-pg-migrate create",
     "migrate:up": "dotenv -e .env.local -- node-pg-migrate up",
     "migrate:down": "dotenv -e .env.local -- node-pg-migrate down",
-    "test": "node --test"
+    "test": "node --test --test-concurrency=1"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.658.0",

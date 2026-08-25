@@ -36,7 +36,10 @@ async function waitForHealth(timeoutMs) {
 // Clears leftover auth rate-limit keys from a previous test run so the
 // rate-limit test below isn't at the mercy of when this suite last ran
 // against the same dev Redis (see backend/src/routes/auth.js's rateLimit).
-async function resetAuthRateLimits() {
+// Exported too — files that call registerUser more than RATE_LIMIT_MAX
+// (10/60s per IP+path) times reset it between tests via beforeEach, since
+// they aren't testing the limiter itself.
+export async function resetAuthRateLimits() {
   const { redisClient, connectRedis } = await import("../src/db/redis.js");
   await connectRedis();
   const keys = await redisClient.keys("authrate:*");
