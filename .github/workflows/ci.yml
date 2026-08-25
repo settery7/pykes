@@ -103,8 +103,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Docker Hub's anonymous-pull auth endpoint intermittently 500s on
+      # GitHub-hosted runners — unrelated to anything in this repo. A few
+      # retries clears it almost every time, so this fails the step only if
+      # the outage outlasts ~45s.
       - name: Build backend image
-        run: docker build -t pykes-backend:ci ./backend
+        run: |
+          n=0
+          until [ $n -ge 3 ]; do
+            docker build -t pykes-backend:ci ./backend && exit 0
+            n=$((n + 1))
+            echo "Build failed (attempt $n/3), retrying in 15s..." >&2
+            sleep 15
+          done
+          exit 1
 
       - name: Build frontend image
-        run: docker build -t pykes-frontend:ci ./frontend
+        run: |
+          n=0
+          until [ $n -ge 3 ]; do
+            docker build -t pykes-frontend:ci ./frontend && exit 0
+            n=$((n + 1))
+            echo "Build failed (attempt $n/3), retrying in 15s..." >&2
+            sleep 15
+          done
+          exit 1
