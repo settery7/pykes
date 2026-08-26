@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useApp } from "./AppContext.js";
 import { api } from "./api.js";
 import Avatar from "./components/Avatar.jsx";
+import VerifyBanner from "./components/VerifyBanner.jsx";
 import GardenCanvas from "./garden/GardenCanvas.jsx";
 import { STAGE_LABELS } from "./utils.js";
 
@@ -50,6 +51,8 @@ export default function AppShell({ children }) {
           <Avatar user={session.user} size={30} onClick={() => goTo("profile", { userId: session.user.id })} />
         </div>
       )}
+
+      <VerifyBanner />
 
       <div className="shell-body">
         {!isMobile && (

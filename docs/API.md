@@ -19,8 +19,10 @@ Errors are always `{ "error": "message" }` with a non-2xx status.
 
 | Method | Path        | Auth | Body                                            | Notes |
 |--------|-------------|------|--------------------------------------------------|-------|
-| POST   | `/register` | –    | `username, email, password, displayName?`       | Returns `{ user, token }`. 409 if username/email taken. |
+| POST   | `/register` | –    | `username, email, password, displayName?`       | Returns `{ user, token }`, `user.email_verified: false`. Fires a verification email (via Resend) in the background — a Resend outage doesn't fail registration. 409 if username/email taken. |
 | POST   | `/login`    | –    | `email, password`                                | Returns `{ user, token }`. 401 on bad credentials. |
+| POST   | `/verify`   | –    | `token`                                          | Public — the link is opened from an email client, often logged out. Marks the account verified. 400 if the token is invalid/expired. |
+| POST   | `/resend-verification` | ✓ | –                                          | Rate-limited to 3/hour per user. 400 if already verified. Returns 204. |
 
 ## Posts (`/api/posts`)
 
@@ -69,6 +71,16 @@ Errors are always `{ "error": "message" }` with a non-2xx status.
 | Method | Path | Auth | Body | Notes |
 |--------|------|------|------|-------|
 | POST   | `/`  | ✓    | `multipart/form-data`, field `file` | PNG/JPEG/WebP only, 5MB max (`multer` memory storage). Stored in MinIO under `uploads/<userId>/<uuid>.<ext>`. Returns `{ url }`. |
+
+## Internal (`/api/internal`)
+
+Service-to-service only — not called by the frontend. Guarded by an
+`x-internal-secret` header (checked against `INTERNAL_SECRET`) instead of a
+user JWT, since there's no logged-in user making the call.
+
+| Method | Path                     | Auth               | Notes |
+|--------|--------------------------|---------------------|-------|
+| POST   | `/send-follower-digests` | `x-internal-secret` | Meant to be triggered on a schedule by an external tool (Make/Zapier's free "Schedule" trigger — see README). Emails everyone who gained a follower since their last digest, via Resend. Returns `{ sent, failed }`. Rate-limited to 1 call/60s globally as a safety net against a misconfigured scenario looping. |
 
 ## Misc
 

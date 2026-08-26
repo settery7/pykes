@@ -32,6 +32,31 @@ skips MinIO entirely and points `S3_*` at Cloudflare R2 instead (free, and
 serves uploads directly rather than through this container) — see
 `backend/.env.example` for the R2-specific variables.
 
+## Email verification & follower digests
+
+Registration sends a verification link (informational only — nothing in the
+app is gated on it) and there's an optional scheduled email that tells a
+user how many new followers they've gained. Both go out through
+[Resend](https://resend.com) (free tier: 3,000 emails/month, 100/day).
+
+1. Create a free Resend account and grab an API key. Set on your backend
+   host: `RESEND_API_KEY`, `EMAIL_FROM` (their sandbox address,
+   `onboarding@resend.dev`, works without verifying your own domain).
+   Leave `RESEND_API_KEY` unset locally — `backend/src/email.js` logs the
+   email content to the console instead of sending, so verification is
+   still fully testable without a Resend account.
+2. Generate a long random string for `INTERNAL_SECRET` and set it too — this
+   guards `POST /api/internal/send-follower-digests`, the one endpoint that
+   isn't meant for the frontend.
+3. The digest endpoint needs *something* to call it on a schedule. Render's
+   free tier has no built-in cron and sleeps after 15 min idle, so this is
+   triggered externally instead — in [Make](https://make.com) or
+   [Zapier](https://zapier.com) (both have a free "Schedule" trigger),
+   build a one-step scenario: **Schedule** (e.g. daily) → **HTTP/Webhook**
+   request, `POST` to `https://<your-backend>/api/internal/send-follower-digests`
+   with header `x-internal-secret: <the value from step 2>`. Either tool
+   works — the endpoint doesn't care which one calls it.
+
 ## What's implemented
 
 - JWT-based auth (register/login), projects, posts (with `growth_stage`-advancing

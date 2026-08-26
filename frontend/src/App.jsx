@@ -56,6 +56,33 @@ export default function App() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
+  // Verification links have nowhere else to land — this app has no real
+  // client-side router, so a "/?verify=<token>" URL is handled here, once,
+  // on first mount. Works whether or not the browser already has a session
+  // (the link is typically opened fresh from an email client), so this
+  // can't live inside the `if (!session)` branch below.
+  useEffect(() => {
+    const token = new URLSearchParams(window.location.search).get("verify");
+    if (!token) return;
+    window.history.replaceState({}, "", window.location.pathname);
+
+    api.verifyEmail(token)
+      .then(({ user }) => {
+        setSession((s) => {
+          if (!s || s.user.id !== user.id) return s;
+          const updated = { ...s.user, email_verified: true };
+          localStorage.setItem("user", JSON.stringify(updated));
+          return { ...s, user: updated };
+        });
+        setToast("Email verified.");
+        setTimeout(() => setToast(null), 3200);
+      })
+      .catch((err) => {
+        setToast(err.message);
+        setTimeout(() => setToast(null), 3200);
+      });
+  }, []);
+
   const refreshMyProjects = useCallback(async () => {
     if (!session) return;
     const projects = await api.getUserProjects(session.token, session.user.id);
@@ -188,7 +215,12 @@ export default function App() {
   );
 
   if (!session) {
-    return <AuthScreen onAuth={handleAuth} />;
+    return (
+      <>
+        <AuthScreen onAuth={handleAuth} />
+        {toast && <div className="toast" role="status" aria-live="polite">{toast}</div>}
+      </>
+    );
   }
 
   return (

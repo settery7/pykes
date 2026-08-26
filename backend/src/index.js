@@ -19,6 +19,7 @@ import { projectsRouter } from "./routes/projects.js";
 import { usersRouter } from "./routes/users.js";
 import { uploadsRouter } from "./routes/uploads.js";
 import { commentsRouter } from "./routes/comments.js";
+import { internalRouter } from "./routes/internal.js";
 
 const app = express();
 // Trust exactly one hop (Caddy in Compose, Traefik in k3s) so req.ip is the
@@ -44,6 +45,7 @@ app.use("/api/projects", projectsRouter);
 app.use("/api/users", usersRouter);
 app.use("/api/uploads", uploadsRouter);
 app.use("/api/comments", commentsRouter);
+app.use("/api/internal", internalRouter);
 
 // Last-resort JSON error handler — catches multer's own next(err) path
 // (e.g. file-too-large) and anything ah() forwards, so a request failure is

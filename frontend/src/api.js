@@ -25,6 +25,8 @@ async function request(path, { token, ...options } = {}) {
 export const api = {
   register: (body) => request("/auth/register", { method: "POST", body: JSON.stringify(body) }),
   login: (body) => request("/auth/login", { method: "POST", body: JSON.stringify(body) }),
+  verifyEmail: (token) => request("/auth/verify", { method: "POST", body: JSON.stringify({ token }) }),
+  resendVerification: (token) => request("/auth/resend-verification", { method: "POST", token }),
 
   getFeed: (token) => request("/posts/feed", { token }),
   getUserPosts: (token, userId) => request(`/posts/user/${userId}`, { token }),
