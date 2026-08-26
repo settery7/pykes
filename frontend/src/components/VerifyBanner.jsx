@@ -11,17 +11,22 @@ export default function VerifyBanner() {
   const [dismissed, setDismissed] = useState(false);
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [error, setError] = useState("");
 
   if (dismissed || session.user.email_verified) return null;
 
   async function resend() {
     setSending(true);
+    setError("");
+    setSent(false);
     try {
       await api.resendVerification(session.token);
       setSent(true);
-    } catch {
-      // Not critical enough to interrupt the banner with an error state —
-      // the resend button just stays available to try again.
+    } catch (err) {
+      // Surface it — a rate limit especially deserves to be seen (the
+      // backend's message already explains why), not swallowed into a
+      // button that just quietly does nothing.
+      setError(err.message);
     } finally {
       setSending(false);
     }
@@ -29,13 +34,13 @@ export default function VerifyBanner() {
 
   return (
     <div className="verify-banner" role="region" aria-label="Email verification">
-      <span>{sent ? "Verification email sent — check your inbox." : "Verify your email to secure your account."}</span>
+      <span>{sent ? "Verification email sent — check your inbox." : error || "Verify your email to secure your account."}</span>
       <div className="verify-banner-actions">
-        {!sent && (
-          <button type="button" className="btn-text" onClick={resend} disabled={sending}>
-            {sending ? "Sending…" : "Resend email"}
-          </button>
-        )}
+        {/* Always available, not just before the first send — the rate
+            limit (3/hour) is the real ceiling, not "once per page load". */}
+        <button type="button" className="btn-text" onClick={resend} disabled={sending}>
+          {sending ? "Sending…" : "Resend email"}
+        </button>
         <button type="button" className="btn-text verify-banner-dismiss" onClick={() => setDismissed(true)} aria-label="Dismiss">
           ✕
         </button>
