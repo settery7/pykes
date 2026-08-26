@@ -192,3 +192,97 @@ describe("POST /api/internal/send-follower-digests", () => {
     assert.equal(await getLastFollowerDigestAt(bystander.id), null);
   });
 });
+
+describe("PATCH /api/users/me/email", () => {
+  test("requires auth", async () => {
+    const { status } = await apiRequest("/api/users/me/email", {
+      method: "PATCH",
+      body: JSON.stringify({ newEmail: "new@test.local", password: "whatever" }),
+    });
+    assert.equal(status, 401);
+  });
+
+  test("rejects an invalid email format", async () => {
+    const { user, token } = await registerUser("changeemailbadformat");
+    const { status } = await apiRequest("/api/users/me/email", {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ newEmail: "not-an-email", password: user.password }),
+    });
+    assert.equal(status, 400);
+  });
+
+  test("rejects an incorrect password", async () => {
+    const { token } = await registerUser("changeemailwrongpw");
+    const { status, data } = await apiRequest("/api/users/me/email", {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ newEmail: `newaddr_${Date.now()}@test.local`, password: "wrong-password" }),
+    });
+    assert.equal(status, 401);
+    assert.ok(data.error);
+  });
+
+  test("rejects setting the same email it already has", async () => {
+    const { user, token } = await registerUser("changeemailsame");
+    const { status } = await apiRequest("/api/users/me/email", {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ newEmail: user.email, password: user.password }),
+    });
+    assert.equal(status, 400);
+  });
+
+  test("rejects an email already used by another account", async () => {
+    const owner = await registerUser("changeemailtaken");
+    const intruder = await registerUser("changeemailintruder");
+    const { status, data } = await apiRequest("/api/users/me/email", {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${intruder.token}` },
+      body: JSON.stringify({ newEmail: owner.user.email, password: intruder.user.password }),
+    });
+    assert.equal(status, 409);
+    assert.ok(data.error);
+  });
+
+  test("changes the email and resets verification, with a fresh token", async () => {
+    const { user, token } = await registerUser("changeemailok");
+    const oldToken = await getVerificationToken(user.email);
+    const newEmail = `changed_${Date.now()}@test.local`;
+
+    const { status, data } = await apiRequest("/api/users/me/email", {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ newEmail, password: user.password }),
+    });
+    assert.equal(status, 200);
+    assert.equal(data.email, newEmail);
+    assert.equal(data.email_verified, false);
+
+    const newToken = await getVerificationToken(newEmail);
+    assert.ok(newToken);
+    assert.notEqual(newToken, oldToken);
+
+    // The new token actually verifies the account under its new email
+    const verify = await apiRequest("/api/auth/verify", { method: "POST", body: JSON.stringify({ token: newToken }) });
+    assert.equal(verify.status, 200);
+    assert.equal(verify.data.user.email, newEmail);
+  });
+
+  test("rate-limits repeated email-change requests", async () => {
+    const { user, token } = await registerUser("changeemailrate");
+    let sawRateLimit = false;
+    for (let i = 0; i < 6; i++) {
+      const { status } = await apiRequest("/api/users/me/email", {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ newEmail: `rate_${i}_${Date.now()}@test.local`, password: user.password }),
+      });
+      if (status === 429) {
+        sawRateLimit = true;
+        break;
+      }
+    }
+    assert.ok(sawRateLimit, "expected a 429 within 6 rapid email-change attempts (limit is 5/hour)");
+  });
+});

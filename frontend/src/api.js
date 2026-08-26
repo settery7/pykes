@@ -45,6 +45,7 @@ export const api = {
   getUser: (token, id) => request(`/users/${id}`, { token }),
   exploreUsers: (token) => request("/users", { token }),
   updateMe: (token, body) => request("/users/me", { method: "PATCH", token, body: JSON.stringify(body) }),
+  changeEmail: (token, newEmail, password) => request("/users/me/email", { method: "PATCH", token, body: JSON.stringify({ newEmail, password }) }),
 
   getFollowing: (token) => request("/follows/following", { token }),
   follow: (token, userId) => request(`/follows/${userId}`, { method: "POST", token }),

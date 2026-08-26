@@ -6,6 +6,7 @@ import { pool } from "../db/pool.js";
 import { rateLimit } from "../middleware/rateLimit.js";
 import { requireAuth } from "../middleware/auth.js";
 import { sendVerificationEmail } from "../email.js";
+import { isValidEmail } from "../validation.js";
 
 export const authRouter = Router();
 
@@ -41,6 +42,9 @@ authRouter.post("/register", authRateLimit, async (req, res) => {
 
   if (!username || !email || !password) {
     return res.status(400).json({ error: "username, email, and password are required" });
+  }
+  if (!isValidEmail(email)) {
+    return res.status(400).json({ error: "Enter a valid email address" });
   }
 
   try {

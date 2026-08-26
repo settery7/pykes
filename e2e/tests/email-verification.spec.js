@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { makeUser, registerViaUI, uniqueSuffix } from "../utils/helpers.js";
+import { makeUser, registerViaUI, goToNav, uniqueSuffix } from "../utils/helpers.js";
 
 test.describe("Email verification banner", () => {
   test("shows after registering, and dismiss hides it", async ({ page }) => {
@@ -41,6 +41,37 @@ test.describe("Verification link handling", () => {
     await expect(page.getByRole("status").filter({ hasText: /invalid or has expired/ })).toBeVisible();
     // The banner is still there afterward — an invalid link doesn't
     // silently mark the account verified.
+    await expect(page.locator(".verify-banner")).toBeVisible();
+  });
+});
+
+test.describe("Change email", () => {
+  test("shows the current email, requires the correct password, and resets to unverified on success", async ({ page }) => {
+    const user = makeUser("changeemail");
+    const newEmail = `changed_${uniqueSuffix()}@e2e.test`;
+
+    await registerViaUI(page, user);
+    await goToNav(page, "Profile");
+
+    const account = page.locator(".card").filter({ hasText: "Change email" });
+    await expect(account).toContainText(user.email);
+    await expect(account).toContainText("Not verified");
+
+    await account.getByRole("button", { name: "Change email" }).click();
+    await page.getByPlaceholder("you@example.com").fill(newEmail);
+    await page.getByPlaceholder("Confirm it's you").fill("wrong-password");
+    await page.getByRole("button", { name: "Save", exact: true }).click();
+    await expect(page.getByText("Incorrect password")).toBeVisible();
+
+    await page.getByPlaceholder("Confirm it's you").fill(user.password);
+    await page.getByRole("button", { name: "Save", exact: true }).click();
+
+    // The form closes and the account card reflects the new (still
+    // unverified) address — changing email doesn't verify it for you.
+    await expect(page.getByPlaceholder("you@example.com")).toHaveCount(0);
+    const updatedAccount = page.locator(".card").filter({ hasText: "Change email" });
+    await expect(updatedAccount).toContainText(newEmail);
+    await expect(updatedAccount).toContainText("Not verified");
     await expect(page.locator(".verify-banner")).toBeVisible();
   });
 });

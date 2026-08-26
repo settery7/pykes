@@ -48,6 +48,7 @@ Errors are always `{ "error": "message" }` with a non-2xx status.
 |--------|---------|------|----------------|-------|
 | GET    | `/`     | ✓    | –              | Explore / suggested creators (everyone except the caller). |
 | PATCH  | `/me`   | ✓    | `displayName?, bio?, avatarUrl?` | Only provided fields are updated (`COALESCE`). |
+| PATCH  | `/me/email` | ✓ | `newEmail, password` | Requires the current password (re-auth, since this is the classic account-takeover vector). Resets `email_verified` to false and sends a fresh verification link to the new address. Rate-limited to 5/hour per user. 401 on wrong password, 409 if the email is already in use. |
 | GET    | `/:id`  | –    | –              | Public profile with `follower_count` / `following_count`. 404 if not found. |
 
 ## Follows (`/api/follows`)

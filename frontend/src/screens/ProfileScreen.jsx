@@ -6,7 +6,7 @@ import ProjectCard from "../components/ProjectCard.jsx";
 import PostCard from "../components/PostCard.jsx";
 
 export default function ProfileScreen({ userId }) {
-  const { session, goTo, isMobile, followingIds, toggleFollow, setSessionUser, dataVersion } = useApp();
+  const { session, goTo, isMobile, followingIds, toggleFollow, setSessionUser, showToast, dataVersion } = useApp();
   const [user, setUser] = useState(null);
   const [projects, setProjects] = useState([]);
   const [posts, setPosts] = useState([]);
@@ -14,6 +14,11 @@ export default function ProfileScreen({ userId }) {
   const [editName, setEditName] = useState("");
   const [editBio, setEditBio] = useState("");
   const [savingAvatar, setSavingAvatar] = useState(false);
+  const [changingEmail, setChangingEmail] = useState(false);
+  const [newEmail, setNewEmail] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [changeEmailError, setChangeEmailError] = useState("");
+  const [changeEmailBusy, setChangeEmailBusy] = useState(false);
   const fileRef = useRef(null);
 
   const isSelf = userId === session.user.id;
@@ -36,6 +41,33 @@ export default function ProfileScreen({ userId }) {
     setUser((u) => ({ ...u, display_name: updated.display_name, bio: updated.bio }));
     setSessionUser(updated);
     setEditing(false);
+  }
+
+  function startChangeEmail() {
+    setNewEmail("");
+    setCurrentPassword("");
+    setChangeEmailError("");
+    setChangingEmail(true);
+  }
+
+  function cancelChangeEmail() {
+    setChangingEmail(false);
+  }
+
+  async function submitChangeEmail() {
+    if (!newEmail.trim() || !currentPassword) return;
+    setChangeEmailBusy(true);
+    setChangeEmailError("");
+    try {
+      const updated = await api.changeEmail(session.token, newEmail.trim(), currentPassword);
+      setSessionUser(updated);
+      setChangingEmail(false);
+      showToast(`Verification email sent to ${updated.email}.`);
+    } catch (err) {
+      setChangeEmailError(err.message);
+    } finally {
+      setChangeEmailBusy(false);
+    }
   }
 
   async function handleAvatarFile(e) {
@@ -165,6 +197,61 @@ export default function ProfileScreen({ userId }) {
           </div>
         </div>
       </div>
+
+      {isSelf && (
+        <div style={{ marginBottom: 28 }}>
+          <div className="eyebrow">Account</div>
+          <div className="card">
+            {changingEmail ? (
+              <>
+                <div className="field">
+                  <label htmlFor="new-email">New email</label>
+                  <input
+                    id="new-email"
+                    className="input"
+                    type="email"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    placeholder="you@example.com"
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="current-password-for-email">Current password</label>
+                  <input
+                    id="current-password-for-email"
+                    className="input"
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder="Confirm it's you"
+                  />
+                </div>
+                {changeEmailError && <p className="auth-error" role="alert">{changeEmailError}</p>}
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button type="button" className="btn btn-primary" style={{ padding: "7px 14px" }} onClick={submitChangeEmail} disabled={changeEmailBusy}>
+                    {changeEmailBusy ? "Saving…" : "Save"}
+                  </button>
+                  <button type="button" className="btn btn-secondary" style={{ padding: "7px 14px" }} onClick={cancelChangeEmail} disabled={changeEmailBusy}>
+                    Cancel
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                <div>
+                  <div style={{ fontSize: 14 }}>{session.user.email}</div>
+                  <div style={{ fontSize: 12, color: session.user.email_verified ? "var(--accent)" : "var(--amber)" }}>
+                    {session.user.email_verified ? "Verified" : "Not verified"}
+                  </div>
+                </div>
+                <button type="button" className="btn btn-secondary" style={{ padding: "6px 12px", fontSize: 12 }} onClick={startChangeEmail}>
+                  Change email
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="eyebrow">Projects</div>
       <div className="cards-grid" style={{ gridTemplateColumns: gridCols, marginBottom: 28 }}>
