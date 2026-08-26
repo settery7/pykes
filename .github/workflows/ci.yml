@@ -45,6 +45,7 @@ jobs:
       S3_ACCESS_KEY: pykesadmin
       S3_SECRET_KEY: pykessecret
       S3_BUCKET: pykes-media
+      INTERNAL_SECRET: ci-test-internal-secret
 
     steps:
       - uses: actions/checkout@v4
