@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { api } from "../api.js";
+import PykesMark from "../components/PykesMark.jsx";
 
 export default function AuthScreen({ onAuth }) {
   const [view, setView] = useState("login");
@@ -44,9 +45,7 @@ export default function AuthScreen({ onAuth }) {
     <div className="auth-page">
       <div className="auth-wrap">
         <div className="auth-logo">
-          <div className="logo-mark">
-            <span /><span /><span /><span />
-          </div>
+          <PykesMark size={22} decorative />
           <span className="wordmark">Pykes</span>
         </div>
         <p className="auth-tagline">Post your progress. Watch your project grow.</p>

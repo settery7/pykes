@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useApp } from "./AppContext.js";
 import { api } from "./api.js";
 import Avatar from "./components/Avatar.jsx";
+import PykesMark from "./components/PykesMark.jsx";
 import VerifyBanner from "./components/VerifyBanner.jsx";
 import GardenCanvas from "./garden/GardenCanvas.jsx";
 import { STAGE_LABELS } from "./utils.js";
@@ -44,8 +45,8 @@ export default function AppShell({ children }) {
     <div className="app-shell">
       {isMobile && (
         <div className="topbar-mobile">
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div className="logo-mark"><span /><span /><span /><span /></div>
+          <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+            <PykesMark size={16} decorative />
             <span className="wordmark">Pykes</span>
           </div>
           <Avatar user={session.user} size={30} onClick={() => goTo("profile", { userId: session.user.id })} />
@@ -58,7 +59,7 @@ export default function AppShell({ children }) {
         {!isMobile && (
           <div className="sidebar">
             <button type="button" className="sidebar-logo" onClick={() => goTo("feed")}>
-              <div className="logo-mark"><span /><span /><span /><span /></div>
+              <PykesMark size={18} decorative />
               <span className="wordmark">Pykes</span>
             </button>
             {NAV.map((item) => {

@@ -245,11 +245,7 @@ textarea.input { resize: vertical; }
 .tab.is-active { background: var(--accent); color: var(--accent-on); }
 
 /* — logo mark — */
-.logo-mark { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; flex: none; }
-.logo-mark span { display: block; }
-.logo-mark span:nth-child(1) { background: var(--accent); }
-.logo-mark span:nth-child(2) { background: var(--amber); }
-.logo-mark span:nth-child(3) { background: oklch(0.6 0.15 150); }
-.logo-mark span:nth-child(4) { background: var(--text-tertiary); }
+/* Sizing lives on the PykesMark size prop; never scale the tile with CSS. */
+.pykes-mark { display: block; flex: none; }
 
 canvas.garden-canvas { image-rendering: pixelated; border-radius: 10px; flex: none; }
