@@ -57,6 +57,9 @@ user how many new followers they've gained. Both go out through
    with header `x-internal-secret: <the value from step 2>`. Either tool
    works — the endpoint doesn't care which one calls it.
 
+Password-reset emails (`POST /api/auth/forgot-password`) reuse this same
+Resend setup — no additional env vars needed.
+
 ## What's implemented
 
 - JWT-based auth (register/login), projects, posts (with `growth_stage`-advancing

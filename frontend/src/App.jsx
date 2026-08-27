@@ -46,6 +46,7 @@ export default function App() {
   const [composer, setComposer] = useState({ open: false, projectId: "" });
   const [toast, setToast] = useState(null);
   const [dataVersion, setDataVersion] = useState(0);
+  const [resetToken, setResetToken] = useState(null);
 
   const isMobile = viewportWidth < 760;
   const showRightRail = !isMobile && viewportWidth >= 1180 && (route.name === "feed" || route.name === "explore");
@@ -81,6 +82,18 @@ export default function App() {
         setToast(err.message);
         setTimeout(() => setToast(null), 3200);
       });
+  }, []);
+
+  // Unlike ?verify, this can't auto-resolve — setting a new password needs
+  // user input, so this just captures the token for AuthScreen to consume
+  // once it's rendered (only true when !session, same as today). A plain
+  // useState initializer would also work here except StrictMode double-
+  // invokes initializers in dev, which would fire the replaceState twice.
+  useEffect(() => {
+    const token = new URLSearchParams(window.location.search).get("reset");
+    if (!token) return;
+    window.history.replaceState({}, "", window.location.pathname);
+    setResetToken(token);
   }, []);
 
   const refreshMyProjects = useCallback(async () => {
@@ -217,7 +230,7 @@ export default function App() {
   if (!session) {
     return (
       <>
-        <AuthScreen onAuth={handleAuth} />
+        <AuthScreen onAuth={handleAuth} resetToken={resetToken} onResetTokenConsumed={() => setResetToken(null)} />
         {toast && <div className="toast" role="status" aria-live="polite">{toast}</div>}
       </>
     );

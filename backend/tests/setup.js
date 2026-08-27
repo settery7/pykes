@@ -42,7 +42,7 @@ async function waitForHealth(timeoutMs) {
 export async function resetAuthRateLimits() {
   const { redisClient, connectRedis } = await import("../src/db/redis.js");
   await connectRedis();
-  const keys = await redisClient.keys("authrate:*");
+  const keys = [...(await redisClient.keys("authrate:*")), ...(await redisClient.keys("forgotpwrate:*"))];
   if (keys.length) await redisClient.del(keys);
   await redisClient.quit();
 }

@@ -81,6 +81,7 @@
 .auth-error { color: var(--danger); font-size: 13px; margin: 0 0 10px 0; }
 .auth-hint { color: var(--text-tertiary); font-size: 13px; margin: 0 0 10px 0; }
 .auth-demo { display: block; width: 100%; text-align: center; margin-top: 14px; font-size: 12px; color: var(--text-tertiary); cursor: pointer; }
+.auth-link { display: inline-block; background: none; border: none; padding: 0; margin: 0 0 10px 0; font-family: inherit; font-size: 12px; color: var(--accent); cursor: pointer; }
 
 /* — composer modal — */
 .modal-backdrop {

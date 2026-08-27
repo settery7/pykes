@@ -27,6 +27,8 @@ export const api = {
   login: (body) => request("/auth/login", { method: "POST", body: JSON.stringify(body) }),
   verifyEmail: (token) => request("/auth/verify", { method: "POST", body: JSON.stringify({ token }) }),
   resendVerification: (token) => request("/auth/resend-verification", { method: "POST", token }),
+  forgotPassword: (email) => request("/auth/forgot-password", { method: "POST", body: JSON.stringify({ email }) }),
+  resetPassword: (token, newPassword) => request("/auth/reset-password", { method: "POST", body: JSON.stringify({ token, newPassword }) }),
 
   getFeed: (token) => request("/posts/feed", { token }),
   getUserPosts: (token, userId) => request(`/posts/user/${userId}`, { token }),

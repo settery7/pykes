@@ -5,12 +5,13 @@ import jwt from "jsonwebtoken";
 import { pool } from "../db/pool.js";
 import { rateLimit } from "../middleware/rateLimit.js";
 import { requireAuth } from "../middleware/auth.js";
-import { sendVerificationEmail } from "../email.js";
+import { sendVerificationEmail, sendPasswordResetEmail, sendPasswordChangedNotice } from "../email.js";
 import { isValidEmail } from "../validation.js";
 
 export const authRouter = Router();
 
 const VERIFICATION_TOKEN_TTL_HOURS = 24;
+const PASSWORD_RESET_TOKEN_TTL_HOURS = 1;
 
 // Per-IP, per-route limit — register/login have no user id to key on yet
 // (that's the whole problem these two routes solve), so req.ip is the only
@@ -31,6 +32,17 @@ const resendVerificationRateLimit = rateLimit({
   max: 3,
   windowS: 60 * 60,
   keyFn: (req) => req.userId,
+});
+
+// IP-keyed like authRateLimit (no session exists pre-login), but its own
+// keyPrefix so a burst of forgot-password requests doesn't also throttle
+// unrelated login/register attempts from the same IP. Stricter than
+// authRateLimit's 10/60s since every hit here costs a real Resend send.
+const forgotPasswordRateLimit = rateLimit({
+  keyPrefix: "forgotpwrate",
+  max: 5,
+  windowS: 60 * 60,
+  keyFn: (req) => req.ip,
 });
 
 function signToken(userId) {
@@ -159,5 +171,78 @@ authRouter.post("/resend-verification", requireAuth, resendVerificationRateLimit
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to resend verification email" });
+  }
+});
+
+// Public. Deliberately returns the identical response whether or not the
+// email is registered — /login already sets this precedent (same 401
+// whether the account doesn't exist or the password is wrong). The email
+// send is fire-and-forget (not awaited), mirroring /register rather than
+// /resend-verification: awaiting it only on the match branch would make
+// response latency itself an account-enumeration oracle.
+authRouter.post("/forgot-password", forgotPasswordRateLimit, async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ error: "email is required" });
+  }
+
+  try {
+    const resetToken = randomUUID();
+    const resetExpiresAt = new Date(Date.now() + PASSWORD_RESET_TOKEN_TTL_HOURS * 60 * 60 * 1000);
+
+    const result = await pool.query(
+      `UPDATE users SET reset_token = $1, reset_token_expires_at = $2 WHERE email = $3 RETURNING email`,
+      [resetToken, resetExpiresAt, email]
+    );
+
+    if (result.rows[0]) {
+      sendPasswordResetEmail(email, resetToken).catch((err) => console.error("[auth] password reset email failed:", err));
+    }
+
+    res.json({ message: "If that email is registered, a reset link has been sent." });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to process request" });
+  }
+});
+
+// Public, token-based — no rate limiter, same posture as /verify (a
+// randomUUID() token has 122 bits of entropy, so guessing isn't a
+// realistic threat a limiter would meaningfully defend against here).
+// Unlike /verify or /resend-verification, the caller here by definition
+// has no working credentials, so this logs them straight in on success
+// instead of sending them to a bare login form to retype the password
+// they just set. Note: pre-existing JWTs (up to 7 days old) stay valid
+// after this — there's no session-revocation store — same informational-
+// only scoping this project already accepted for email verification.
+authRouter.post("/reset-password", async (req, res) => {
+  const { token, newPassword } = req.body;
+  if (!token || !newPassword) {
+    return res.status(400).json({ error: "token and newPassword are required" });
+  }
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, username, email, display_name, created_at, email_verified FROM users
+       WHERE reset_token = $1 AND reset_token_expires_at > now()`,
+      [token]
+    );
+    const user = rows[0];
+    if (!user) {
+      return res.status(400).json({ error: "This reset link is invalid or has expired" });
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await pool.query(
+      `UPDATE users SET password_hash = $1, reset_token = NULL, reset_token_expires_at = NULL WHERE id = $2`,
+      [passwordHash, user.id]
+    );
+
+    sendPasswordChangedNotice(user.email).catch((err) => console.error("[auth] password-changed notice failed:", err));
+
+    res.json({ user, token: signToken(user.id) });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to reset password" });
   }
 });

@@ -15,7 +15,7 @@ export async function resetAuthRateLimit() {
   const client = createClient({ url: REDIS_URL });
   try {
     await client.connect();
-    const keys = await client.keys("authrate:*");
+    const keys = [...(await client.keys("authrate:*")), ...(await client.keys("forgotpwrate:*"))];
     if (keys.length) await client.del(keys);
   } finally {
     await client.quit();

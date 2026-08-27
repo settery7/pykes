@@ -33,6 +33,31 @@ export async function sendVerificationEmail(to, token) {
   });
 }
 
+export async function sendPasswordResetEmail(to, token) {
+  const base = process.env.FRONTEND_ORIGIN || "http://localhost:5173";
+  const link = `${base}/?reset=${encodeURIComponent(token)}`;
+  await send({
+    to,
+    subject: "Reset your Pykes password",
+    html: `
+      <p>Someone requested a password reset for this Pykes account. If that was you, set a new password here:</p>
+      <p><a href="${link}">${link}</a></p>
+      <p>This link expires in 1 hour. If you didn't request this, you can safely ignore this email — your password hasn't been changed.</p>
+    `,
+  });
+}
+
+export async function sendPasswordChangedNotice(to) {
+  await send({
+    to,
+    subject: "Your Pykes password was changed",
+    html: `
+      <p>This is a confirmation that the password for this Pykes account was just changed.</p>
+      <p>If you didn't do this, please reset your password again immediately.</p>
+    `,
+  });
+}
+
 export async function sendFollowerDigest(to, { displayName, newFollowerCount }) {
   await send({
     to,

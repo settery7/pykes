@@ -23,6 +23,8 @@ Errors are always `{ "error": "message" }` with a non-2xx status.
 | POST   | `/login`    | –    | `email, password`                                | Returns `{ user, token }`. 401 on bad credentials. |
 | POST   | `/verify`   | –    | `token`                                          | Public — the link is opened from an email client, often logged out. Marks the account verified. 400 if the token is invalid/expired. |
 | POST   | `/resend-verification` | ✓ | –                                          | Rate-limited to 3/hour per user. 400 if already verified. Returns 204. |
+| POST   | `/forgot-password` | –    | `email`                                          | Always returns the identical `200 {message}` whether or not the email is registered, to avoid leaking account existence (mirrors `/login`'s identical-401 precedent). Sends a reset link (1-hour expiry) via Resend, fire-and-forget, only if it matched. Rate-limited to 5/hour per IP. |
+| POST   | `/reset-password` | –    | `token, newPassword`                             | Public, token-based (mirrors `/verify`, no rate limit). Returns `{ user, token }` — logs the caller in immediately, since a locked-out user has no working credentials to retry with. 400 if the token is invalid/expired. Pre-existing sessions (JWTs issued before the reset) stay valid — there's no revocation store, an accepted limitation consistent with this project's current auth model. |
 
 ## Posts (`/api/posts`)
 
