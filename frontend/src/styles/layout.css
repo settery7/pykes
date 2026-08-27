@@ -79,6 +79,7 @@
 .auth-tagline { text-align: center; color: var(--text-tertiary); font-size: 14px; margin: 0 0 24px 0; }
 .auth-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 24px; }
 .auth-error { color: var(--danger); font-size: 13px; margin: 0 0 10px 0; }
+.auth-hint { color: var(--text-tertiary); font-size: 13px; margin: 0 0 10px 0; }
 .auth-demo { display: block; width: 100%; text-align: center; margin-top: 14px; font-size: 12px; color: var(--text-tertiary); cursor: pointer; }
 
 /* — composer modal — */

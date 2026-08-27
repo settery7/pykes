@@ -1,6 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { api } from "../api.js";
 import PykesMark from "../components/PykesMark.jsx";
+
+// Free-tier backend hosting (Render) spins the server down after 15 min
+// idle, so the first request after a lull can take up to ~a minute to
+// wake it. A bare "Please wait…" reads as broken past a couple seconds —
+// this swaps in an explanation once the wait is clearly not a normal
+// request.
+const SLOW_REQUEST_HINT_MS = 4000;
 
 export default function AuthScreen({ onAuth }) {
   const [view, setView] = useState("login");
@@ -9,6 +16,16 @@ export default function AuthScreen({ onAuth }) {
   const [username, setUsername] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [slow, setSlow] = useState(false);
+
+  useEffect(() => {
+    if (!loading) {
+      setSlow(false);
+      return;
+    }
+    const t = setTimeout(() => setSlow(true), SLOW_REQUEST_HINT_MS);
+    return () => clearTimeout(t);
+  }, [loading]);
 
   async function submit(e) {
     e?.preventDefault();
@@ -99,9 +116,14 @@ export default function AuthScreen({ onAuth }) {
             </div>
 
             {error && <p className="auth-error" role="alert">{error}</p>}
+            {slow && (
+              <p className="auth-hint" role="status">
+                Waking up the server — this runs on free hosting that sleeps when idle, so the first request can take up to a minute.
+              </p>
+            )}
 
             <button type="submit" className="btn btn-primary" style={{ width: "100%" }} disabled={loading}>
-              {loading ? "Please wait…" : view === "login" ? "Log in" : "Create account"}
+              {loading ? (slow ? "Waking up…" : "Please wait…") : view === "login" ? "Log in" : "Create account"}
             </button>
           </form>
 
